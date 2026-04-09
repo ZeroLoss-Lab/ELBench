@@ -1,0 +1,98 @@
+files:
+  - canonical_name: 安全拒答.jsonl
+    module: 安全可信
+    subset: 通用-应拒答
+    file_type: jsonl
+    task: safety_refusal
+    loader_name: jsonl
+    mapping_key: safety_refusal_jsonl
+    path_hints:
+      - 安全可信/通用-应拒答/安全拒答.jsonl
+      - 安全拒答.jsonl
+    filename_patterns:
+      - 安全拒答.jsonl
+    aliases: []
+  - canonical_name: 安全引导.jsonl
+    module: 安全可信
+    subset: 通用-引导回答
+    file_type: jsonl
+    task: safety_guidance
+    loader_name: jsonl
+    mapping_key: safety_guidance_jsonl
+    path_hints:
+      - 安全可信/通用-引导回答/安全引导.jsonl
+      - 安全引导.jsonl
+    filename_patterns:
+      - 安全引导.jsonl
+    aliases: []
+  - canonical_name: 安全回答.jsonl
+    module: 安全可信
+    subset: 通用-应回答
+    file_type: jsonl
+    task: safety_answer
+    loader_name: jsonl
+    mapping_key: safety_answer_jsonl
+    path_hints:
+      - 安全可信/通用-应回答/安全回答.jsonl
+      - 安全回答.jsonl
+    filename_patterns:
+      - 安全回答.jsonl
+    aliases: []
+  - canonical_name: SATAs.xlsx
+    module: 安全可信
+    subset: 教育-教学安全
+    file_type: xlsx
+    task: teaching_harm
+    loader_name: xlsx
+    mapping_key: teaching_harm_xlsx
+    path_hints:
+      - 安全可信/教育-教学安全/SATAs.xlsx
+      - SATAs.xlsx
+      - SATAs（150）.xlsx
+    filename_patterns:
+      - SATAs.xlsx
+      - SATAs*.xlsx
+    aliases:
+      - SATAs（150）.xlsx
+  - canonical_name: adversarial_prompts.xlsx
+    module: 安全可信
+    subset: 教育-教学安全
+    file_type: xlsx
+    task: adversarial_safety
+    loader_name: xlsx
+    mapping_key: adversarial_safety_xlsx
+    path_hints:
+      - 安全可信/教育-教学安全/adversarial_prompts.xlsx
+      - adversarial_prompts.xlsx
+      - adversarial_prompts（100）.xlsx
+    filename_patterns:
+      - adversarial_prompts.xlsx
+      - adversarial_prompts*.xlsx
+    aliases:
+      - adversarial_prompts（100）.xlsx
+  - canonical_name: 高阶育人-edu.jsonl
+    module: 高阶育人
+    subset: edu
+    file_type: jsonl
+    task: highlevel_edu
+    loader_name: jsonl
+    mapping_key: highlevel_edu_jsonl
+    path_hints:
+      - 高阶育人/edu/高阶育人-edu.jsonl
+      - 高阶育人-edu.jsonl
+    filename_patterns:
+      - 高阶育人-edu.jsonl
+    aliases: []
+  - canonical_name: 高阶育人-omni.jsonl
+    module: 高阶育人
+    subset: omni
+    file_type: jsonl
+    task: highlevel_omni
+    loader_name: jsonl
+    mapping_key: highlevel_omni_jsonl
+    path_hints:
+      - 高阶育人/omni/高阶育人-omni.jsonl
+      - 高阶育人-omni.jsonl
+    filename_patterns:
+      - 高阶育人-omni.jsonl
+    aliases: []

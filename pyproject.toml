@@ -1,0 +1,25 @@
+﻿[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "elbench"
+version = "0.1.0"
+description = "Config-driven benchmark framework for education LLM evaluation."
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27.0",
+    "openpyxl>=3.1.0",
+    "pydantic>=2.7.0",
+    "PyYAML>=6.0.0",
+]
+
+[project.scripts]
+elbench = "elbench.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
