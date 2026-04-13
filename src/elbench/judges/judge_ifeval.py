@@ -128,7 +128,7 @@ class IFEvalJudge(BaseJudge):
             "\n".join(lines[:-1]) if lines else "",
             "\n".join(lines[1:-1]) if len(lines) > 1 else "",
         ]
-        variants.extend(variant.replace("*", "") for variant in variants)
+        variants.extend(variant.replace("*", "") for variant in list(variants))
         return variants
 
     def _prompt_level(self, results: list[dict[str, Any]]) -> float:
