@@ -295,6 +295,12 @@ python -m unittest tests.test_registry_and_loaders tests.test_judges
 - 生产级 judge prompt 与 rubric
 - 各主观子集更细的判分标准
 
+## 团队维护
+
+团队内部维护规范见：
+
+- `docs/TEAM_MAINTENANCE_GUIDE.zh-CN.md`
+
 ## License
 
 发布到 GitHub 前请补充你希望使用的许可证。
