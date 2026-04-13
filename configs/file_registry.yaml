@@ -135,3 +135,29 @@ files:
     filename_patterns:
       - ifeval_sampled.jsonl
     aliases: []
+  - canonical_name: math_500_sampled.jsonl
+    module: 通用模型
+    subset: math_500
+    file_type: jsonl
+    task: math_500
+    loader_name: math_500_jsonl
+    mapping_key: math_500_jsonl
+    path_hints:
+      - 通用/math_500_sampled.jsonl
+      - math_500_sampled.jsonl
+    filename_patterns:
+      - math_500_sampled.jsonl
+    aliases: []
+  - canonical_name: aime24_sampled.jsonl
+    module: 通用模型
+    subset: aime24
+    file_type: jsonl
+    task: aime24
+    loader_name: aime_jsonl
+    mapping_key: aime_jsonl
+    path_hints:
+      - 通用/aime24_sampled.jsonl
+      - aime24_sampled.jsonl
+    filename_patterns:
+      - aime24_sampled.jsonl
+    aliases: []

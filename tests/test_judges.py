@@ -10,6 +10,7 @@ if str(SRC) not in sys.path:
 
 from elbench.judges.judge_highlevel import HighLevelJudge
 from elbench.judges.judge_ifeval import IFEvalJudge
+from elbench.judges.judge_math import AIMEJudge, Math500Judge
 from elbench.judges.judge_mmlu import MMLUProJudge
 from elbench.judges.judge_teaching_harm import TeachingHarmJudge
 from elbench.judges.llm_judge import LLMJudge
@@ -231,6 +232,72 @@ class JudgeSmokeTest(unittest.TestCase):
         self.assertEqual(result.score, 0.0)
         self.assertEqual(result.judge_metadata["unsupported_instructions"], ["unknown:instruction"])
 
+    def test_math_500_extracts_boxed_answer(self) -> None:
+        judge = Math500Judge()
+        sample = self._math_sample("42")
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="Reasoning here. Therefore, \\boxed{42}.")))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "42")
+
+    def test_math_500_extracts_answer_marker_and_last_number(self) -> None:
+        judge = Math500Judge()
+
+        marker_result = asyncio.run(judge.judge(self._math_sample("9"), ModelResponse(text="The answer is 9.")))
+        fallback_result = asyncio.run(judge.judge(self._math_sample("-50"), ModelResponse(text="After simplification we get -50.")))
+
+        self.assertEqual(marker_result.score, 1.0)
+        self.assertEqual(fallback_result.score, 1.0)
+
+    def test_math_500_normalizes_latex_fraction_and_text(self) -> None:
+        judge = Math500Judge()
+
+        fraction_result = asyncio.run(judge.judge(self._math_sample("\\frac{14}{3}"), ModelResponse(text="\\boxed{14/3}")))
+        text_result = asyncio.run(judge.judge(self._math_sample("\\text{Evelyn}"), ModelResponse(text="final answer is Evelyn")))
+
+        self.assertEqual(fraction_result.score, 1.0)
+        self.assertEqual(text_result.score, 1.0)
+
+    def test_math_500_tuple_latex_matches_reference(self) -> None:
+        judge = Math500Judge()
+        sample = self._math_sample("\\left( 3, \\frac{\\pi}{2} \\right)")
+        response = ModelResponse(text="The polar form is \\boxed{\\left(3,\\frac{\\pi}{2}\\right)}.")
+        result = asyncio.run(judge.judge(sample, response))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+
+    def test_math_500_wrong_answer_fails(self) -> None:
+        judge = Math500Judge()
+        result = asyncio.run(judge.judge(self._math_sample("42"), ModelResponse(text="\\boxed{43}")))
+
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.score, 0.0)
+
+    def test_aime_extracts_boxed_reference_and_prediction(self) -> None:
+        judge = AIMEJudge()
+        result = asyncio.run(judge.judge(self._aime_sample("\\boxed{204}"), ModelResponse(text="After solving, \\boxed{204}")))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["expected_answer"], "204")
+        self.assertEqual(result.judge_metadata["predicted_answer"], "204")
+
+    def test_aime_uses_last_number_fallback_for_prediction(self) -> None:
+        judge = AIMEJudge()
+        result = asyncio.run(judge.judge(self._aime_sample("\\boxed{113}"), ModelResponse(text="The requested value is 113.")))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+
+    def test_aime_wrong_answer_fails(self) -> None:
+        judge = AIMEJudge()
+        result = asyncio.run(judge.judge(self._aime_sample("\\boxed{371}"), ModelResponse(text="\\boxed{370}")))
+
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.score, 0.0)
+
     def _mmlu_sample(self, target: str, task: str = "mmlu_pro", choices: str = "ABCDEFGHIJ") -> Sample:
         return Sample(
             sample_id="mmlu1",
@@ -261,6 +328,34 @@ class JudgeSmokeTest(unittest.TestCase):
                 "kwargs": kwargs,
                 "key": 1,
             },
+        )
+
+    def _math_sample(self, target: str) -> Sample:
+        return Sample(
+            sample_id="math1",
+            source_file="math_500_sampled.jsonl",
+            source_path="math_500_sampled.jsonl",
+            module="通用模型",
+            subset="math_500",
+            task="math_500",
+            dimension="Level 2",
+            prompt="dummy",
+            reference={"target": target},
+            metadata={"question_id": "test/example.json", "subset_key": "Level 2"},
+        )
+
+    def _aime_sample(self, target: str) -> Sample:
+        return Sample(
+            sample_id="aime1",
+            source_file="aime24_sampled.jsonl",
+            source_path="aime24_sampled.jsonl",
+            module="通用模型",
+            subset="aime24",
+            task="aime24",
+            dimension="default",
+            prompt="dummy",
+            reference={"target": target},
+            metadata={},
         )
 
 

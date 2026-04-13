@@ -3,6 +3,7 @@
 from elbench.judges.base import BaseJudge
 from elbench.judges.judge_highlevel import HighLevelJudge
 from elbench.judges.judge_ifeval import IFEvalJudge
+from elbench.judges.judge_math import AIMEJudge, Math500Judge
 from elbench.judges.judge_mmlu import MMLUProJudge
 from elbench.judges.judge_safety import SafetyJudge
 from elbench.judges.judge_teaching_harm import TeachingHarmJudge
@@ -50,4 +51,8 @@ class JudgeRouter:
             return MMLUProJudge()
         if sample.module == "通用模型" and sample.task == "ifeval":
             return IFEvalJudge()
+        if sample.module == "通用模型" and sample.task == "math_500":
+            return Math500Judge()
+        if sample.module == "通用模型" and sample.task == "aime24":
+            return AIMEJudge()
         return PlaceholderJudge(judge_name=f"{sample.module}_placeholder_judge")

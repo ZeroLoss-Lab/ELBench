@@ -17,7 +17,7 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
         config = load_project_config(Path("configs"))
         registry = FileRegistry(config)
         resolved = registry.resolve()
-        self.assertEqual(len(resolved), 10)
+        self.assertEqual(len(resolved), 12)
 
     def test_loaders_produce_samples(self) -> None:
         config = load_project_config(Path("configs"))
@@ -97,6 +97,38 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
         self.assertEqual(sample.metadata["kwargs"][1], {"num_highlights": 3})
         self.assertEqual(sample.metadata["kwargs"][2], {"relation": "at least", "num_words": 300})
         self.assertEqual((sample.reference or {}).get("target"), "")
+
+    def test_math_500_sampled_uses_evalscope_prompt_and_level_dimension(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"math_500_sampled.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample = next(iter(loader.iter_samples(resolved[0])))
+
+        self.assertEqual(sample.module, "通用模型")
+        self.assertEqual(sample.task, "math_500")
+        self.assertEqual(sample.dimension, "Level 2")
+        self.assertIn("Convert the point $(0,3)$", sample.prompt)
+        self.assertIn("put your final answer within \\boxed{}", sample.prompt)
+        self.assertEqual((sample.reference or {}).get("target"), "\\left( 3, \\frac{\\pi}{2} \\right)")
+        self.assertEqual(sample.metadata["question_id"], "test/precalculus/807.json")
+        self.assertIn("solution", sample.metadata)
+
+    def test_aime24_sampled_uses_evalscope_prompt_and_default_dimension(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"aime24_sampled.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample = next(iter(loader.iter_samples(resolved[0])))
+
+        self.assertEqual(sample.module, "通用模型")
+        self.assertEqual(sample.task, "aime24")
+        self.assertEqual(sample.dimension, "default")
+        self.assertIn("Every morning Aya goes", sample.prompt)
+        self.assertIn("Put your answer inside \\boxed{}", sample.prompt)
+        self.assertEqual((sample.reference or {}).get("target"), "\\boxed{204}")
 
 
 if __name__ == "__main__":
