@@ -66,3 +66,15 @@ mappings:
     dimension_fields: [subset_key]
     reference_fields: [target]
     metadata_fields: [metadata, choices, subset_key]
+  ceval_jsonl:
+    sample_id_fields: [id]
+    prompt_fields: []
+    dimension_fields: [metadata.subject]
+    reference_fields: [target]
+    metadata_fields: [metadata, choices, subset_key]
+  ifeval_jsonl:
+    sample_id_fields: [id]
+    prompt_fields: []
+    dimension_fields: []
+    reference_fields: [target]
+    metadata_fields: [metadata, instruction_id_list, kwargs, key, prompt]

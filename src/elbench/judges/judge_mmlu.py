@@ -13,7 +13,7 @@ class MMLUProJudge(BaseJudge):
         predicted_answer = self._extract_answer(response.text, valid_letters)
         passed = predicted_answer is not None and predicted_answer == expected_answer
         return JudgeResult(
-            judge_name="mmlu_pro_exact_match",
+            judge_name=f"{sample.task}_exact_match",
             judge_result="pass" if passed else "fail",
             score=1.0 if passed else 0.0,
             judge_reason="Exact answer match." if passed else "Predicted answer does not match reference.",
@@ -47,7 +47,7 @@ class MMLUProJudge(BaseJudge):
             return None
         valid_pattern = "".join(re.escape(letter) for letter in valid_letters)
         explicit_matches = re.findall(
-            rf"ANSWER\s*:\s*\(?\s*([{valid_pattern}])\s*\)?",
+            rf"(?:ANSWER|答案)\s*[：:]\s*\(?\s*([{valid_pattern}])\s*\)?",
             str(text),
             flags=re.I,
         )

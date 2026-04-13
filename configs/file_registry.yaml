@@ -109,3 +109,29 @@ files:
     filename_patterns:
       - mmlu_pro_sampled.jsonl
     aliases: []
+  - canonical_name: ceval_sampled.jsonl
+    module: 通用模型
+    subset: ceval
+    file_type: jsonl
+    task: ceval
+    loader_name: ceval_jsonl
+    mapping_key: ceval_jsonl
+    path_hints:
+      - 通用/ceval_sampled.jsonl
+      - ceval_sampled.jsonl
+    filename_patterns:
+      - ceval_sampled.jsonl
+    aliases: []
+  - canonical_name: ifeval_sampled.jsonl
+    module: 通用模型
+    subset: ifeval
+    file_type: jsonl
+    task: ifeval
+    loader_name: ifeval_jsonl
+    mapping_key: ifeval_jsonl
+    path_hints:
+      - 通用/ifeval_sampled.jsonl
+      - ifeval_sampled.jsonl
+    filename_patterns:
+      - ifeval_sampled.jsonl
+    aliases: []

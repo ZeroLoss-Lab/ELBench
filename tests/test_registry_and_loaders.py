@@ -17,7 +17,7 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
         config = load_project_config(Path("configs"))
         registry = FileRegistry(config)
         resolved = registry.resolve()
-        self.assertEqual(len(resolved), 8)
+        self.assertEqual(len(resolved), 10)
 
     def test_loaders_produce_samples(self) -> None:
         config = load_project_config(Path("configs"))
@@ -54,6 +54,49 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
         self.assertIn("J) Robbery, because he physically took the purse from the woman's presence.", sample.prompt)
         self.assertIn("ANSWER: [LETTER]", sample.prompt)
         self.assertEqual((sample.reference or {}).get("target"), "D")
+
+    def test_ceval_sampled_uses_zero_shot_prompt(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"ceval_sampled.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample = next(iter(loader.iter_samples(resolved[0])))
+
+        self.assertEqual(sample.module, "通用模型")
+        self.assertEqual(sample.task, "ceval")
+        self.assertEqual(sample.dimension, "marxism")
+        self.assertNotIn("“先天下之忧而忧，后天下之乐而乐”", sample.prompt)
+        self.assertIn("“坐地日行八万里", sample.prompt)
+        self.assertIn("A) 物质运动的客观性和时空的主观性的统一", sample.prompt)
+        self.assertIn("D) 运动的绝对性和静止的相对性的统一", sample.prompt)
+        self.assertIn("答案：[LETTER]", sample.prompt)
+        self.assertEqual((sample.reference or {}).get("target"), "D")
+
+    def test_ifeval_sampled_uses_raw_prompt_and_parsed_kwargs(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"ifeval_sampled.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample = next(iter(loader.iter_samples(resolved[0])))
+
+        self.assertEqual(sample.module, "通用模型")
+        self.assertEqual(sample.task, "ifeval")
+        self.assertEqual(sample.dimension, "default")
+        self.assertIn("Write a 300+ word summary", sample.prompt)
+        self.assertNotIn("ANSWER: [LETTER]", sample.prompt)
+        self.assertEqual(
+            sample.metadata["instruction_id_list"],
+            [
+                "punctuation:no_comma",
+                "detectable_format:number_highlighted_sections",
+                "length_constraints:number_words",
+            ],
+        )
+        self.assertEqual(sample.metadata["kwargs"][1], {"num_highlights": 3})
+        self.assertEqual(sample.metadata["kwargs"][2], {"relation": "at least", "num_words": 300})
+        self.assertEqual((sample.reference or {}).get("target"), "")
 
 
 if __name__ == "__main__":

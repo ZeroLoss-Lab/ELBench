@@ -21,3 +21,7 @@ tasks:
     mode: rule
   mmlu_pro:
     mode: rule
+  ceval:
+    mode: rule
+  ifeval:
+    mode: rule

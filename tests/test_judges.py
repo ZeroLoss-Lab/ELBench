@@ -9,6 +9,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from elbench.judges.judge_highlevel import HighLevelJudge
+from elbench.judges.judge_ifeval import IFEvalJudge
 from elbench.judges.judge_mmlu import MMLUProJudge
 from elbench.judges.judge_teaching_harm import TeachingHarmJudge
 from elbench.judges.llm_judge import LLMJudge
@@ -147,18 +148,119 @@ class JudgeSmokeTest(unittest.TestCase):
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
 
-    def _mmlu_sample(self, target: str) -> Sample:
+    def test_ceval_chinese_answer_prefix(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("C", task="ceval", choices="ABCD")
+        response = ModelResponse(text="逐步分析后可知，最后答案如下。\n答案：C")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "C")
+
+    def test_ifeval_no_comma_passes_and_fails(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(["punctuation:no_comma"], [{}])
+
+        pass_result = asyncio.run(judge.judge(sample, ModelResponse(text="No comma appears here")))
+        fail_result = asyncio.run(judge.judge(sample, ModelResponse(text="A comma, appears here")))
+
+        self.assertEqual(pass_result.judge_result, "pass")
+        self.assertEqual(pass_result.score, 1.0)
+        self.assertEqual(fail_result.judge_result, "fail")
+        self.assertEqual(fail_result.score, 0.0)
+
+    def test_ifeval_highlighted_sections_counts_single_and_double_markdown(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(
+            ["detectable_format:number_highlighted_sections"],
+            [{"num_highlights": 3}],
+        )
+        response = ModelResponse(text="*one* **two** **   ** *three*")
+        result = asyncio.run(judge.judge(sample, response))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+
+    def test_ifeval_number_words_relations(self) -> None:
+        judge = IFEvalJudge()
+        at_least = self._ifeval_sample(["length_constraints:number_words"], [{"relation": "at least", "num_words": 3}])
+        less_than = self._ifeval_sample(["length_constraints:number_words"], [{"relation": "less than", "num_words": 3}])
+
+        self.assertEqual(asyncio.run(judge.judge(at_least, ModelResponse(text="one two three"))).score, 1.0)
+        self.assertEqual(asyncio.run(judge.judge(less_than, ModelResponse(text="one two"))).score, 1.0)
+        self.assertEqual(asyncio.run(judge.judge(less_than, ModelResponse(text="one two three"))).score, 0.0)
+
+    def test_ifeval_number_placeholders(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(["detectable_content:number_placeholders"], [{"num_placeholders": 2}])
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="Hello [name] at [address].")))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+
+    def test_ifeval_multi_instruction_averages_instruction_level(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(
+            [
+                "punctuation:no_comma",
+                "detectable_content:number_placeholders",
+                "length_constraints:number_words",
+            ],
+            [{}, {"num_placeholders": 1}, {"relation": "at least", "num_words": 100}],
+        )
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="No comma here [slot]")))
+
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.judge_metadata["prompt_level_strict"], 0.0)
+        self.assertAlmostEqual(result.judge_metadata["inst_level_strict"], 2 / 3)
+
+    def test_ifeval_loose_mode_tries_trimmed_lines(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(["punctuation:no_comma"], [{}])
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="bad, first line\nclean final line")))
+
+        self.assertEqual(result.judge_metadata["prompt_level_strict"], 0.0)
+        self.assertEqual(result.judge_metadata["prompt_level_loose"], 1.0)
+
+    def test_ifeval_unknown_instruction_fails_with_metadata(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(["unknown:instruction"], [{}])
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="anything")))
+
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.score, 0.0)
+        self.assertEqual(result.judge_metadata["unsupported_instructions"], ["unknown:instruction"])
+
+    def _mmlu_sample(self, target: str, task: str = "mmlu_pro", choices: str = "ABCDEFGHIJ") -> Sample:
         return Sample(
             sample_id="mmlu1",
-            source_file="mmlu_pro_sampled.jsonl",
-            source_path="mmlu_pro_sampled.jsonl",
+            source_file=f"{task}_sampled.jsonl",
+            source_path=f"{task}_sampled.jsonl",
             module="通用模型",
-            subset="mmlu_pro",
-            task="mmlu_pro",
+            subset=task,
+            task=task,
             dimension="law",
             prompt="dummy",
             reference={"target": target},
-            metadata={"choices": [f"choice {letter}" for letter in "ABCDEFGHIJ"]},
+            metadata={"choices": [f"choice {letter}" for letter in choices]},
+        )
+
+    def _ifeval_sample(self, instruction_ids: list[str], kwargs: list[dict]) -> Sample:
+        return Sample(
+            sample_id="ifeval1",
+            source_file="ifeval_sampled.jsonl",
+            source_path="ifeval_sampled.jsonl",
+            module="通用模型",
+            subset="ifeval",
+            task="ifeval",
+            dimension="default",
+            prompt="dummy",
+            reference={"target": ""},
+            metadata={
+                "instruction_id_list": instruction_ids,
+                "kwargs": kwargs,
+                "key": 1,
+            },
         )
 
 
