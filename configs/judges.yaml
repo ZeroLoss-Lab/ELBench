@@ -19,3 +19,13 @@ tasks:
     template: highlevel_edu
   highlevel_omni:
     mode: rule
+  mmlu_pro:
+    mode: rule
+  ceval:
+    mode: rule
+  ifeval:
+    mode: rule
+  math_500:
+    mode: rule
+  aime24:
+    mode: rule

@@ -60,3 +60,33 @@ mappings:
     dimension_fields: [field]
     reference_fields: [answer, reasonableness]
     metadata_fields: [type, field, answer, reasonableness]
+  mmlu_pro_jsonl:
+    sample_id_fields: [id]
+    prompt_fields: []
+    dimension_fields: [subset_key]
+    reference_fields: [target]
+    metadata_fields: [metadata, choices, subset_key]
+  ceval_jsonl:
+    sample_id_fields: [id]
+    prompt_fields: []
+    dimension_fields: [metadata.subject]
+    reference_fields: [target]
+    metadata_fields: [metadata, choices, subset_key]
+  ifeval_jsonl:
+    sample_id_fields: [id]
+    prompt_fields: []
+    dimension_fields: []
+    reference_fields: [target]
+    metadata_fields: [metadata, instruction_id_list, kwargs, key, prompt]
+  math_500_jsonl:
+    sample_id_fields: [id]
+    prompt_fields: []
+    dimension_fields: [subset_key]
+    reference_fields: [target]
+    metadata_fields: [metadata, subset_key]
+  aime_jsonl:
+    sample_id_fields: [id]
+    prompt_fields: []
+    dimension_fields: []
+    reference_fields: [target]
+    metadata_fields: [metadata, subset_key]

@@ -38,6 +38,7 @@ fi
 conda activate "$ENV_DIR"
 
 python -m pip install --upgrade pip setuptools wheel
+python -m pip install regex sympy word2number latex2sympy2_extended pylatexenc
 python -m pip install -e .
 
 echo

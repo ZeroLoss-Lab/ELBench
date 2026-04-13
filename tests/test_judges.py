@@ -9,6 +9,9 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from elbench.judges.judge_highlevel import HighLevelJudge
+from elbench.judges.judge_ifeval import IFEvalJudge
+from elbench.judges.judge_math import AIMEJudge, Math500Judge
+from elbench.judges.judge_mmlu import MMLUProJudge
 from elbench.judges.judge_teaching_harm import TeachingHarmJudge
 from elbench.judges.llm_judge import LLMJudge
 from elbench.judges.router import JudgeRouter
@@ -112,7 +115,249 @@ class JudgeSmokeTest(unittest.TestCase):
         self.assertEqual(result.judge_result, "pass")
         self.assertGreaterEqual(result.score or 0, 0.99)
 
+    def test_mmlu_pro_explicit_answer_match(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("D")
+        response = ModelResponse(text="After considering the options, ANSWER: D")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "D")
+
+    def test_mmlu_pro_uses_last_explicit_answer(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("B")
+        response = ModelResponse(text="A seems tempting at first.\nBut the final line is ANSWER: B")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "B")
+
+    def test_mmlu_pro_wrong_answer_fails(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("D")
+        response = ModelResponse(text="ANSWER: E")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.score, 0.0)
+
+    def test_mmlu_pro_supports_j_option(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("J")
+        response = ModelResponse(text="The correct choice is J.")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+
+    def test_ceval_chinese_answer_prefix(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("C", task="ceval", choices="ABCD")
+        response = ModelResponse(text="逐步分析后可知，最后答案如下。\n答案：C")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "C")
+
+    def test_ifeval_no_comma_passes_and_fails(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(["punctuation:no_comma"], [{}])
+
+        pass_result = asyncio.run(judge.judge(sample, ModelResponse(text="No comma appears here")))
+        fail_result = asyncio.run(judge.judge(sample, ModelResponse(text="A comma, appears here")))
+
+        self.assertEqual(pass_result.judge_result, "pass")
+        self.assertEqual(pass_result.score, 1.0)
+        self.assertEqual(fail_result.judge_result, "fail")
+        self.assertEqual(fail_result.score, 0.0)
+
+    def test_ifeval_highlighted_sections_counts_single_and_double_markdown(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(
+            ["detectable_format:number_highlighted_sections"],
+            [{"num_highlights": 3}],
+        )
+        response = ModelResponse(text="*one* **two** **   ** *three*")
+        result = asyncio.run(judge.judge(sample, response))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+
+    def test_ifeval_number_words_relations(self) -> None:
+        judge = IFEvalJudge()
+        at_least = self._ifeval_sample(["length_constraints:number_words"], [{"relation": "at least", "num_words": 3}])
+        less_than = self._ifeval_sample(["length_constraints:number_words"], [{"relation": "less than", "num_words": 3}])
+
+        self.assertEqual(asyncio.run(judge.judge(at_least, ModelResponse(text="one two three"))).score, 1.0)
+        self.assertEqual(asyncio.run(judge.judge(less_than, ModelResponse(text="one two"))).score, 1.0)
+        self.assertEqual(asyncio.run(judge.judge(less_than, ModelResponse(text="one two three"))).score, 0.0)
+
+    def test_ifeval_number_placeholders(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(["detectable_content:number_placeholders"], [{"num_placeholders": 2}])
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="Hello [name] at [address].")))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+
+    def test_ifeval_multi_instruction_averages_instruction_level(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(
+            [
+                "punctuation:no_comma",
+                "detectable_content:number_placeholders",
+                "length_constraints:number_words",
+            ],
+            [{}, {"num_placeholders": 1}, {"relation": "at least", "num_words": 100}],
+        )
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="No comma here [slot]")))
+
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.judge_metadata["prompt_level_strict"], 0.0)
+        self.assertAlmostEqual(result.judge_metadata["inst_level_strict"], 2 / 3)
+
+    def test_ifeval_loose_mode_tries_trimmed_lines(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(["punctuation:no_comma"], [{}])
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="bad, first line\nclean final line")))
+
+        self.assertEqual(result.judge_metadata["prompt_level_strict"], 0.0)
+        self.assertEqual(result.judge_metadata["prompt_level_loose"], 1.0)
+
+    def test_ifeval_unknown_instruction_fails_with_metadata(self) -> None:
+        judge = IFEvalJudge()
+        sample = self._ifeval_sample(["unknown:instruction"], [{}])
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="anything")))
+
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.score, 0.0)
+        self.assertEqual(result.judge_metadata["unsupported_instructions"], ["unknown:instruction"])
+
+    def test_math_500_extracts_boxed_answer(self) -> None:
+        judge = Math500Judge()
+        sample = self._math_sample("42")
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="Reasoning here. Therefore, \\boxed{42}.")))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "42")
+
+    def test_math_500_extracts_answer_marker_and_last_number(self) -> None:
+        judge = Math500Judge()
+
+        marker_result = asyncio.run(judge.judge(self._math_sample("9"), ModelResponse(text="The answer is 9.")))
+        fallback_result = asyncio.run(judge.judge(self._math_sample("-50"), ModelResponse(text="After simplification we get -50.")))
+
+        self.assertEqual(marker_result.score, 1.0)
+        self.assertEqual(fallback_result.score, 1.0)
+
+    def test_math_500_normalizes_latex_fraction_and_text(self) -> None:
+        judge = Math500Judge()
+
+        fraction_result = asyncio.run(judge.judge(self._math_sample("\\frac{14}{3}"), ModelResponse(text="\\boxed{14/3}")))
+        text_result = asyncio.run(judge.judge(self._math_sample("\\text{Evelyn}"), ModelResponse(text="final answer is Evelyn")))
+
+        self.assertEqual(fraction_result.score, 1.0)
+        self.assertEqual(text_result.score, 1.0)
+
+    def test_math_500_tuple_latex_matches_reference(self) -> None:
+        judge = Math500Judge()
+        sample = self._math_sample("\\left( 3, \\frac{\\pi}{2} \\right)")
+        response = ModelResponse(text="The polar form is \\boxed{\\left(3,\\frac{\\pi}{2}\\right)}.")
+        result = asyncio.run(judge.judge(sample, response))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+
+    def test_math_500_wrong_answer_fails(self) -> None:
+        judge = Math500Judge()
+        result = asyncio.run(judge.judge(self._math_sample("42"), ModelResponse(text="\\boxed{43}")))
+
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.score, 0.0)
+
+    def test_aime_extracts_boxed_reference_and_prediction(self) -> None:
+        judge = AIMEJudge()
+        result = asyncio.run(judge.judge(self._aime_sample("\\boxed{204}"), ModelResponse(text="After solving, \\boxed{204}")))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["expected_answer"], "204")
+        self.assertEqual(result.judge_metadata["predicted_answer"], "204")
+
+    def test_aime_uses_last_number_fallback_for_prediction(self) -> None:
+        judge = AIMEJudge()
+        result = asyncio.run(judge.judge(self._aime_sample("\\boxed{113}"), ModelResponse(text="The requested value is 113.")))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+
+    def test_aime_wrong_answer_fails(self) -> None:
+        judge = AIMEJudge()
+        result = asyncio.run(judge.judge(self._aime_sample("\\boxed{371}"), ModelResponse(text="\\boxed{370}")))
+
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.score, 0.0)
+
+    def _mmlu_sample(self, target: str, task: str = "mmlu_pro", choices: str = "ABCDEFGHIJ") -> Sample:
+        return Sample(
+            sample_id="mmlu1",
+            source_file=f"{task}_sampled.jsonl",
+            source_path=f"{task}_sampled.jsonl",
+            module="通用模型",
+            subset=task,
+            task=task,
+            dimension="law",
+            prompt="dummy",
+            reference={"target": target},
+            metadata={"choices": [f"choice {letter}" for letter in choices]},
+        )
+
+    def _ifeval_sample(self, instruction_ids: list[str], kwargs: list[dict]) -> Sample:
+        return Sample(
+            sample_id="ifeval1",
+            source_file="ifeval_sampled.jsonl",
+            source_path="ifeval_sampled.jsonl",
+            module="通用模型",
+            subset="ifeval",
+            task="ifeval",
+            dimension="default",
+            prompt="dummy",
+            reference={"target": ""},
+            metadata={
+                "instruction_id_list": instruction_ids,
+                "kwargs": kwargs,
+                "key": 1,
+            },
+        )
+
+    def _math_sample(self, target: str) -> Sample:
+        return Sample(
+            sample_id="math1",
+            source_file="math_500_sampled.jsonl",
+            source_path="math_500_sampled.jsonl",
+            module="通用模型",
+            subset="math_500",
+            task="math_500",
+            dimension="Level 2",
+            prompt="dummy",
+            reference={"target": target},
+            metadata={"question_id": "test/example.json", "subset_key": "Level 2"},
+        )
+
+    def _aime_sample(self, target: str) -> Sample:
+        return Sample(
+            sample_id="aime1",
+            source_file="aime24_sampled.jsonl",
+            source_path="aime24_sampled.jsonl",
+            module="通用模型",
+            subset="aime24",
+            task="aime24",
+            dimension="default",
+            prompt="dummy",
+            reference={"target": target},
+            metadata={},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
-
