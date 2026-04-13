@@ -60,3 +60,9 @@ mappings:
     dimension_fields: [field]
     reference_fields: [answer, reasonableness]
     metadata_fields: [type, field, answer, reasonableness]
+  mmlu_pro_jsonl:
+    sample_id_fields: [id]
+    prompt_fields: []
+    dimension_fields: [subset_key]
+    reference_fields: [target]
+    metadata_fields: [metadata, choices, subset_key]

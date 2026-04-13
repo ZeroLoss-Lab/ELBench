@@ -96,3 +96,16 @@ files:
     filename_patterns:
       - 高阶育人-omni.jsonl
     aliases: []
+  - canonical_name: mmlu_pro_sampled.jsonl
+    module: 通用模型
+    subset: mmlu_pro
+    file_type: jsonl
+    task: mmlu_pro
+    loader_name: mmlu_pro_jsonl
+    mapping_key: mmlu_pro_jsonl
+    path_hints:
+      - 通用/mmlu_pro_sampled.jsonl
+      - mmlu_pro_sampled.jsonl
+    filename_patterns:
+      - mmlu_pro_sampled.jsonl
+    aliases: []

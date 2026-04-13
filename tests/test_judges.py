@@ -9,6 +9,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from elbench.judges.judge_highlevel import HighLevelJudge
+from elbench.judges.judge_mmlu import MMLUProJudge
 from elbench.judges.judge_teaching_harm import TeachingHarmJudge
 from elbench.judges.llm_judge import LLMJudge
 from elbench.judges.router import JudgeRouter
@@ -112,7 +113,54 @@ class JudgeSmokeTest(unittest.TestCase):
         self.assertEqual(result.judge_result, "pass")
         self.assertGreaterEqual(result.score or 0, 0.99)
 
+    def test_mmlu_pro_explicit_answer_match(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("D")
+        response = ModelResponse(text="After considering the options, ANSWER: D")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "D")
+
+    def test_mmlu_pro_uses_last_explicit_answer(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("B")
+        response = ModelResponse(text="A seems tempting at first.\nBut the final line is ANSWER: B")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "B")
+
+    def test_mmlu_pro_wrong_answer_fails(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("D")
+        response = ModelResponse(text="ANSWER: E")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.score, 0.0)
+
+    def test_mmlu_pro_supports_j_option(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("J")
+        response = ModelResponse(text="The correct choice is J.")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+
+    def _mmlu_sample(self, target: str) -> Sample:
+        return Sample(
+            sample_id="mmlu1",
+            source_file="mmlu_pro_sampled.jsonl",
+            source_path="mmlu_pro_sampled.jsonl",
+            module="通用模型",
+            subset="mmlu_pro",
+            task="mmlu_pro",
+            dimension="law",
+            prompt="dummy",
+            reference={"target": target},
+            metadata={"choices": [f"choice {letter}" for letter in "ABCDEFGHIJ"]},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
-

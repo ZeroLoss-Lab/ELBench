@@ -19,3 +19,5 @@ tasks:
     template: highlevel_edu
   highlevel_omni:
     mode: rule
+  mmlu_pro:
+    mode: rule

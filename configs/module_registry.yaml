@@ -8,9 +8,9 @@ modules:
     description: 教育场景中的高阶育人能力评测。
     owner: current
   - module_name: 通用模型
-    enabled: false
-    description: 预留模块，后续接入通用模型能力 benchmark。
-    owner: reserved
+    enabled: true
+    description: 通用模型能力 benchmark。
+    owner: current
   - module_name: 基本教育
     enabled: false
     description: 预留模块，后续接入基础教育 benchmark。
