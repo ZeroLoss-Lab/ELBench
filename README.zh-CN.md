@@ -15,6 +15,17 @@ ELBench 不是一次性脚本，而是按长期维护的正式工程来设计的
 - `通用模型`
 - `基本教育`
 
+`基本教育` 现已通过外部 ELMES 桥接接入，包含：
+
+- `knowledge.yaml`（10 题）
+- `question.yaml`（10 题）
+- `cross.yaml`（10 题）
+- `config_guided_task.yaml`（15 题）
+
+合计 `45` 题。
+
+仓库内已内置 `ELMES` 代码到 `third_party/elmes`，用户无需再单独下载一个 elmes 仓库。
+
 ## 项目概览
 
 这套框架遵循以下几个核心原则：
@@ -63,6 +74,7 @@ ELBench 不是一次性脚本，而是按长期维护的正式工程来设计的
 .
 ├── configs/
 │   ├── app.yaml
+│   ├── basic_education.yaml
 │   ├── file_registry.yaml
 │   ├── field_mappings.yaml
 │   ├── judges.yaml
@@ -213,10 +225,27 @@ elbench inspect
 elbench run --model-id mock.default --max-samples 3 --run-id smoke-test
 ```
 
-### 5. 运行单元测试
+### 5. 运行基本教育（ELMES 桥接）
+
+默认配置已指向仓库内置路径（`configs/basic_education.yaml`）：
+
+- `elmes_repo_path: third_party/elmes`
+- 被测模型（以及可选 judge 模型）在 `configs/models.yaml` 中配置
+
+如果你想切换到自己维护的 ELMES 分支，再修改 `elmes_repo_path` 即可。
+
+执行命令：
 
 ```bash
-python -m unittest tests.test_registry_and_loaders tests.test_judges
+python scripts/run_benchmark.py run --model-id <你的模型ID> --module 基本教育 --run-id basic-education-run
+```
+
+注意：基本教育桥接需要真实 API 模型配置（`api_base` + `api_key_env`）。`mock.*` 模型不能用于该模块。
+
+### 6. 运行单元测试
+
+```bash
+python -m unittest tests.test_basic_education_bridge tests.test_registry_and_loaders tests.test_judges
 ```
 
 ## 配置说明

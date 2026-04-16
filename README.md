@@ -15,6 +15,17 @@ It already reserves extension space for future modules:
 - `通用模型` / `General Models`
 - `基本教育` / `Basic Education`
 
+`Basic Education` is now integrated through an external ELMES bridge runner:
+
+- `knowledge.yaml` (10 tasks)
+- `question.yaml` (10 tasks)
+- `cross.yaml` (10 tasks)
+- `config_guided_task.yaml` (15 tasks)
+
+Total: `45` tasks.
+
+ELMES is vendored inside this repository at `third_party/elmes`, so users do not need a separate ELMES repo checkout.
+
 ## Overview
 
 The framework is built around a few stable principles:
@@ -63,6 +74,7 @@ At this stage, external API integration for judge models and evaluated models is
 .
 ├── configs/
 │   ├── app.yaml
+│   ├── basic_education.yaml
 │   ├── file_registry.yaml
 │   ├── field_mappings.yaml
 │   ├── judges.yaml
@@ -213,10 +225,27 @@ elbench inspect
 elbench run --model-id mock.default --max-samples 3 --run-id smoke-test
 ```
 
-### 5. Run unit tests
+### 5. Run Basic Education (ELMES bridge)
+
+Default setup already points to the vendored ELMES path in `configs/basic_education.yaml`:
+
+- `elmes_repo_path: third_party/elmes`
+- tested model and optional judge model should be configured in `configs/models.yaml`.
+
+If you want to use a different ELMES fork, update `elmes_repo_path` accordingly.
+
+Then run:
 
 ```bash
-python -m unittest tests.test_registry_and_loaders tests.test_judges
+python scripts/run_benchmark.py run --model-id <your_model_id> --module 基本教育 --run-id basic-education-run
+```
+
+Note: the Basic Education bridge requires a real API-backed model config (`api_base` + `api_key_env`). `mock.*` models are not valid for this module.
+
+### 6. Run unit tests
+
+```bash
+python -m unittest tests.test_basic_education_bridge tests.test_registry_and_loaders tests.test_judges
 ```
 
 ## Configuration Guide

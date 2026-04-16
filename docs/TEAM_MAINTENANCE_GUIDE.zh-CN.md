@@ -3,6 +3,12 @@
 本指南面向后续维护 `ELBench` 的团队成员，目标不是解释“这个项目做什么”，而是规定“后续应该如何安全、统一地维护这个项目”。  
 本指南尤其适用于使用大模型进行 `vibe coding` 的协作场景，避免不同成员各自按个人习惯改动，导致目录、配置、judge、输出结构和主流程逐渐失控。
 
+## 0. 核心原则
+- 第一性原理：从原始需求出发，动机不清立即停止，路径非最优则直接纠正。
+- 极简沟通：用简单直白的中文一次性输出，把用户当高中生，拒绝使用过多的语言混杂、术语堆砌。
+- Let it crash: 发现问题尽早暴露，严禁使用任何降级、兜底、启发式补丁或非严谨通用算法的后处理补救。
+- 自检与精简：每次改动后，严格执行【Review查bug然后第一性原理分析】流程，思考是否有更简单、更稳健的实现。
+
 ## 1. 维护目标
 
 团队维护 ELBench 时，必须优先保证以下几点：
@@ -62,6 +68,8 @@
 | `configs/providers.yaml` | provider 注册表 | 新增 provider adapter 时 | 描述 provider 能力和默认限制，不写具体模型实例 |
 | `configs/models.yaml` | 模型注册表 | 新增被测模型或 judge 模型时 | 单模型的 timeout/retry/rate limit 在这里配 |
 | `configs/judges.yaml` | judge 路由配置 | 调整 task 用 rule 还是 llm judge 时 | task 到 judge 策略的唯一入口 |
+| `configs/basic_education.yaml` | 基本教育（ELMES）桥接配置 | 调整 45 题场景、ELMES 路径、模板映射时 | 基本教育模块走外部桥接，不走 `file_registry` |
+| `third_party/elmes/` | 内置 ELMES 源码 | 升级 ELMES 版本、修复 ELMES 兼容问题时 | 这是 vendored 依赖，默认由基本教育桥接器调用 |
 | `data/benchmark_root/` | benchmark 数据根目录 | 新增或整理数据文件时 | 必须按模块和子集分类，不要散落在根目录 |
 | `data/benchmark_root/安全可信/` | 安全可信模块数据 | 安全可信数据更新时 | 目录名与注册表保持一致 |
 | `data/benchmark_root/高阶育人/` | 高阶育人模块数据 | 高阶育人数据更新时 | `edu/` 与 `omni/` 子目录要稳定 |
@@ -81,6 +89,7 @@
 | `src/elbench/providers/openai_compatible.py` | OpenAI 兼容 provider | 新增 OpenAI-compatible 模型时 | 封装 provider 差异，不污染 runner |
 | `src/elbench/providers/mock.py` | mock provider | 本地 smoke、judge 回放、占位验证时 | 不要把 mock 逻辑扩展成正式 provider 主逻辑 |
 | `src/elbench/execution/runner.py` | 评测主执行器 | 执行调度、结果落盘、judge 串联变更时 | 尽量少改，是主骨架文件 |
+| `src/elbench/execution/basic_education.py` | 基本教育桥接执行器 | 调整 ELMES 调用、结果解析、桥接恢复策略时 | 只负责基本教育，不要混入通用单轮逻辑 |
 | `src/elbench/execution/rate_limit.py` | 限流器 | 并发、QPS、RPM、TPM 策略变化时 | 改动会影响所有 provider |
 | `src/elbench/execution/retry.py` | 重试与退避 | retry 规则变化时 | 避免把 task 特例写进这里 |
 | `src/elbench/judges/router.py` | judge 路由器 | task 到 rule/llm judge 的映射变化时 | judge 分流统一在这里处理 |
@@ -133,6 +142,11 @@
 5. 为该模块的 task 补 `judges.yaml` 路由。
 6. 如需新增 judge，实现 judge 类或 llm judge template。
 7. 只在必要时改 `runner.py`，优先不动主流程。
+
+补充：`基本教育` 当前是桥接模式例外。  
+它通过 `configs/basic_education.yaml` 调用外部 `elmes` pipeline，再将结果转回 ELBench 标准输出。  
+维护 `基本教育` 时优先改桥接配置和 `src/elbench/execution/basic_education.py`，不要强行塞进 `file_registry`。  
+当前默认 ELMES 路径是仓库内置的 `third_party/elmes`。
 
 ## 6. 调整已有评测脚本的规范
 

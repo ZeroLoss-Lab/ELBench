@@ -12,6 +12,6 @@ modules:
     description: 通用模型能力 benchmark。
     owner: current
   - module_name: 基本教育
-    enabled: false
-    description: 预留模块，后续接入基础教育 benchmark。
-    owner: reserved
+    enabled: true
+    description: 通过 ELMES 桥接接入的基本教育多场景评测（45题）。
+    owner: current
