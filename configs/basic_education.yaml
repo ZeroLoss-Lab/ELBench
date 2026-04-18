@@ -1,8 +1,7 @@
 enabled: true
 module_name: 基本教育
-elmes_repo_path: third_party/elmes
-elmes_python: python
-elmes_cli_module: elmes.cli.main
+runtime_python: python
+runtime_cli_module: elbench.basic_education_runtime.cli.main
 command_timeout_seconds: 7200
 continue_on_error: false
 workspace_root: outputs/basic_education
@@ -13,7 +12,7 @@ scenarios:
     source_file: knowledge.yaml
     subset: 知识点讲解
     task: basic_knowledge_point_explanation
-    template_path: example/knowledge.yaml
+    template_path: 基本教育/知识点讲解/knowledge.yaml
     expected_tasks: 10
     multi_turn: false
     dimension: 知识点讲解
@@ -27,7 +26,7 @@ scenarios:
     source_file: question.yaml
     subset: 情景化出题
     task: basic_contextualized_question_generation
-    template_path: example/question.yaml
+    template_path: 基本教育/情景化出题/question.yaml
     expected_tasks: 10
     multi_turn: false
     dimension: 情景化出题
@@ -41,7 +40,7 @@ scenarios:
     source_file: cross.yaml
     subset: 跨学科教案生成
     task: basic_interdisciplinary_lesson_plan_generation
-    template_path: example/cross.yaml
+    template_path: 基本教育/跨学科教案生成/cross.yaml
     expected_tasks: 10
     multi_turn: false
     dimension: 跨学科教案生成
@@ -55,7 +54,7 @@ scenarios:
     source_file: config_guided_task.yaml
     subset: 引导式讲题
     task: basic_guided_problem_solving_teaching
-    template_path: example/config_guided_task.yaml
+    template_path: 基本教育/引导式讲题/config_guided_task.yaml
     expected_tasks: 15
     multi_turn: true
     dimension: 引导式讲题

@@ -17,7 +17,7 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
         config = load_project_config(Path("configs"))
         registry = FileRegistry(config)
         resolved = registry.resolve()
-        self.assertEqual(len(resolved), 12)
+        self.assertEqual(len(resolved), 16)
 
     def test_loaders_produce_samples(self) -> None:
         config = load_project_config(Path("configs"))
@@ -28,6 +28,31 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
             sample = next(iter(loader.iter_samples(item)))
             self.assertTrue(sample.prompt)
             self.assertEqual(sample.source_file, item.entry.canonical_name)
+
+    def test_basic_education_templates_are_registered_under_data_root(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(modules={"基本教育"})
+        self.assertEqual(len(resolved), 4)
+
+        expected_counts = {
+            "knowledge.yaml": 10,
+            "question.yaml": 10,
+            "cross.yaml": 10,
+            "config_guided_task.yaml": 15,
+        }
+        actual_counts: dict[str, int] = {}
+        for item in resolved:
+            self.assertIn(str(ROOT / "data" / "benchmark_root" / "基本教育"), str(item.path))
+            loader = LoaderFactory.create(item.entry.loader_name)
+            samples = list(loader.iter_samples(item))
+            actual_counts[item.entry.canonical_name] = len(samples)
+            self.assertTrue(samples)
+            self.assertEqual(samples[0].module, "基本教育")
+            self.assertEqual(samples[0].subset, item.entry.subset)
+            self.assertEqual(samples[0].dimension, item.entry.subset)
+
+        self.assertEqual(actual_counts, expected_counts)
 
     def test_highlevel_omni_dimension_is_parsed_from_field(self) -> None:
         config = load_project_config(Path("configs"))

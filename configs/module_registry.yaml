@@ -13,5 +13,5 @@ modules:
     owner: current
   - module_name: 基本教育
     enabled: true
-    description: 通过 ELMES 桥接接入的基本教育多场景评测（45题）。
+    description: 基本教育多场景评测（45题），运行时使用内部 basic_education_runtime 多轮执行模块。
     owner: current

@@ -53,12 +53,20 @@ class BenchmarkRunner:
         failure_writer = JsonlWriter(output_paths.failures_path)
         retry_writer = JsonlWriter(output_paths.retries_path)
 
-        include_basic_education = options.modules is not None and DEFAULT_BASIC_MODULE_NAME in options.modules
-        standard_modules = set(options.modules) if options.modules else None
-        if standard_modules is not None:
-            standard_modules.discard(DEFAULT_BASIC_MODULE_NAME)
-            if not standard_modules:
-                standard_modules = set()
+        requested_modules = set(options.modules) if options.modules else None
+        include_basic_education = (
+            requested_modules is not None and DEFAULT_BASIC_MODULE_NAME in requested_modules
+        )
+        if requested_modules is None:
+            standard_modules = {
+                module_name
+                for module_name, module_entry in self.config.modules.items()
+                if module_entry.enabled and module_name != DEFAULT_BASIC_MODULE_NAME
+            }
+        else:
+            standard_modules = {
+                module_name for module_name in requested_modules if module_name != DEFAULT_BASIC_MODULE_NAME
+            }
         if include_basic_education and standard_modules and options.max_samples is not None:
             logger.warning(
                 "Mixed module run with max_samples=%s: standard modules consume the budget first; "
@@ -68,7 +76,7 @@ class BenchmarkRunner:
 
         standard_loaded = 0
         standard_failures = 0
-        if options.modules is None or standard_modules:
+        if standard_modules:
             standard_stats = await self._run_standard_samples(
                 logger=logger,
                 checkpoint=checkpoint,
@@ -78,7 +86,7 @@ class BenchmarkRunner:
                 retry_writer=retry_writer,
                 model_config=model_config,
                 options=options,
-                modules=(standard_modules if options.modules is not None else None),
+                modules=standard_modules,
             )
             standard_loaded = standard_stats["loaded_samples"]
             standard_failures = standard_stats["failed_samples"]

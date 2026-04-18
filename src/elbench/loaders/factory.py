@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from elbench.loaders.base import BaseLoader
+from elbench.loaders.basic_education_yaml_loader import BasicEducationYamlLoader
 from elbench.loaders.jsonl_loader import JsonlLoader
 from elbench.loaders.mmlu_pro_loader import (
     AIMEJsonlLoader,
@@ -14,6 +15,7 @@ from elbench.loaders.xlsx_loader import XlsxLoader
 
 class LoaderFactory:
     _LOADERS: dict[str, type[BaseLoader]] = {
+        "basic_education_yaml": BasicEducationYamlLoader,
         "jsonl": JsonlLoader,
         "aime_jsonl": AIMEJsonlLoader,
         "ceval_jsonl": CEvalJsonlLoader,

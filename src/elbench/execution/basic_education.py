@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import json
 import logging
 import os
@@ -17,6 +18,15 @@ from pydantic import BaseModel, Field
 from elbench.persistence import CheckpointStore, JsonlWriter
 from elbench.schemas.config import ModelConfig, ProjectConfig
 from elbench.schemas.evaluation import EvalResult, FailureRecord
+RUNTIME_REQUIRED_MODULES = (
+    "aiosqlite",
+    "click",
+    "langchain",
+    "langgraph",
+    "polyfactory",
+    "tenacity",
+    "tqdm",
+)
 
 
 DEFAULT_BASIC_MODULE_NAME = "基本教育"
@@ -41,9 +51,8 @@ class BasicEducationScenarioConfig(BaseModel):
 class BasicEducationConfig(BaseModel):
     enabled: bool = False
     module_name: str = DEFAULT_BASIC_MODULE_NAME
-    elmes_repo_path: Path | None = None
-    elmes_python: str = "python"
-    elmes_cli_module: str = "elmes.cli.main"
+    runtime_python: str = "python"
+    runtime_cli_module: str = "elbench.basic_education_runtime.cli.main"
     command_timeout_seconds: int = 7200
     continue_on_error: bool = False
     workspace_root: Path = Path("outputs/basic_education")
@@ -60,7 +69,11 @@ class BasicEducationRunStats:
     failed_samples: int = 0
 
 
-def load_basic_education_config(config_root: Path, project_root: Path) -> BasicEducationConfig:
+def load_basic_education_config(
+    config_root: Path,
+    project_root: Path,
+    data_root: Path | None = None,
+) -> BasicEducationConfig:
     config_path = config_root / "basic_education.yaml"
     if not config_path.exists():
         return BasicEducationConfig(enabled=False)
@@ -69,12 +82,10 @@ def load_basic_education_config(config_root: Path, project_root: Path) -> BasicE
         raw = yaml.safe_load(handle) or {}
     config = BasicEducationConfig.model_validate(raw)
 
-    if config.elmes_repo_path is not None and not config.elmes_repo_path.is_absolute():
-        config.elmes_repo_path = (project_root / config.elmes_repo_path).resolve()
     if not config.workspace_root.is_absolute():
         config.workspace_root = (project_root / config.workspace_root).resolve()
 
-    template_base = config.elmes_repo_path or project_root
+    template_base = data_root or (project_root / "data" / "benchmark_root")
     for scenario in config.scenarios:
         if not scenario.template_path.is_absolute():
             scenario.template_path = (template_base / scenario.template_path).resolve()
@@ -95,6 +106,7 @@ class BasicEducationExecutor:
         self.config = load_basic_education_config(
             config_root=self.project_config.config_root,
             project_root=self.project_config.project_root,
+            data_root=self.project_config.app.data_root,
         )
 
     async def run(
@@ -116,6 +128,7 @@ class BasicEducationExecutor:
                 "Basic education integration is disabled. "
                 "Enable it in configs/basic_education.yaml first."
             )
+        self._ensure_runtime_dependencies()
 
         scenarios = self._select_scenarios(
             subsets=subsets,
@@ -170,6 +183,20 @@ class BasicEducationExecutor:
             scenarios.append(scenario)
         return scenarios
 
+    def _ensure_runtime_dependencies(self) -> None:
+        missing = [
+            module_name
+            for module_name in RUNTIME_REQUIRED_MODULES
+            if importlib.util.find_spec(module_name) is None
+        ]
+        if not missing:
+            return
+        missing_display = ", ".join(missing)
+        raise RuntimeError(
+            "Basic education runtime dependencies are missing: "
+            f"{missing_display}. Install them with `pip install -e .[basic-education]`."
+        )
+
     async def _run_one_scenario(
         self,
         *,
@@ -190,11 +217,11 @@ class BasicEducationExecutor:
         runtime_root = self.config.workspace_root / run_id / self.model_config.model_id / scenario.scenario_id
         runtime_root.mkdir(parents=True, exist_ok=True)
         memory_path = runtime_root / "memory"
-        rendered_config_path = runtime_root / "elmes.runtime.yaml"
+        rendered_config_path = runtime_root / "basic_education_runtime.yaml"
 
         try:
             template_data = self._read_yaml_file(scenario.template_path)
-            declared_task_count = count_elmes_tasks(template_data)
+            declared_task_count = count_runtime_tasks(template_data)
             if scenario.expected_tasks is not None and declared_task_count != scenario.expected_tasks:
                 self.logger.warning(
                     "Scenario task-count mismatch: scenario=%s expected=%s declared=%s",
@@ -203,7 +230,7 @@ class BasicEducationExecutor:
                     declared_task_count,
                 )
 
-            rendered = self._render_elmes_template(
+            rendered = self._render_runtime_template(
                 template_data=template_data,
                 scenario=scenario,
                 memory_path=memory_path,
@@ -225,22 +252,22 @@ class BasicEducationExecutor:
 
         try:
             if judge_enabled:
-                await self._run_elmes_command(["pipeline", "--config", str(rendered_config_path)])
+                await self._run_runtime_command(["pipeline", "--config", str(rendered_config_path)])
             else:
-                await self._run_elmes_command(["generate", "--config", str(rendered_config_path)])
-                await self._run_elmes_command(["export", "json", "--config", str(rendered_config_path)])
+                await self._run_runtime_command(["generate", "--config", str(rendered_config_path)])
+                await self._run_runtime_command(["export", "json", "--config", str(rendered_config_path)])
         except Exception as exc:  # noqa: BLE001
             await self._write_scenario_failure(
                 scenario=scenario,
                 failure_writer=failure_writer,
-                message=f"ELMES command failed: {exc}",
+                message=f"Basic education runtime command failed: {exc}",
                 checkpoint=checkpoint,
             )
             if not self.config.continue_on_error:
                 raise
             return BasicEducationRunStats(scenario_count=1, failed_samples=1)
 
-        stats = await self._import_elmes_outputs(
+        stats = await self._import_runtime_outputs(
             scenario=scenario,
             memory_path=memory_path,
             checkpoint=checkpoint,
@@ -253,7 +280,7 @@ class BasicEducationExecutor:
         await checkpoint.mark_completed(scenario_checkpoint_key)
         return stats
 
-    def _render_elmes_template(
+    def _render_runtime_template(
         self,
         *,
         template_data: dict[str, Any],
@@ -270,7 +297,7 @@ class BasicEducationExecutor:
         if not isinstance(models_section, dict) or not models_section:
             raise ValueError(f"Invalid or missing models section for scenario={scenario.scenario_id}")
 
-        target_payload = self._build_elmes_model_payload(self.model_config)
+        target_payload = self._build_runtime_model_payload(self.model_config)
         target_keys = [key for key in scenario.target_model_keys if key in models_section]
         if not target_keys:
             raise ValueError(
@@ -283,7 +310,7 @@ class BasicEducationExecutor:
         evaluation_section = rendered.get("evaluation")
         judge_model = self._resolve_judge_model()
         if isinstance(evaluation_section, dict) and judge_model is not None:
-            judge_payload = self._build_elmes_model_payload(judge_model)
+            judge_payload = self._build_runtime_model_payload(judge_model)
             judge_keys = [key for key in scenario.judge_model_keys if key in models_section]
             if not judge_keys:
                 eval_model_key = evaluation_section.get("model")
@@ -303,10 +330,21 @@ class BasicEducationExecutor:
             return None
         return self.project_config.models.get(model_id)
 
-    def _build_elmes_model_payload(self, model_config: ModelConfig) -> dict[str, Any]:
-        if not model_config.api_base:
+    def _build_runtime_model_payload(self, model_config: ModelConfig) -> dict[str, Any]:
+        provider_kwargs = dict(model_config.provider_kwargs)
+        runtime_type = str(provider_kwargs.pop("runtime_type", "")).strip()
+        if not runtime_type:
+            runtime_type = "mock" if model_config.provider_name == "mock" else "openai"
+
+        runtime_model_name = str(
+            provider_kwargs.pop("runtime_model_name", model_config.model_name)
+        ).strip()
+        runtime_api_base = provider_kwargs.pop("runtime_api_base", model_config.api_base)
+
+        if runtime_type != "mock" and not runtime_api_base:
             raise ValueError(
-                f"Model {model_config.model_id} requires api_base for ELMES integration."
+                f"Model {model_config.model_id} requires api_base (or provider_kwargs.runtime_api_base) "
+                "for basic education runtime integration."
             )
         api_key = ""
         if model_config.api_key_env:
@@ -318,36 +356,34 @@ class BasicEducationExecutor:
                 )
 
         payload: dict[str, Any] = {
-            "type": "openai",
+            "type": runtime_type,
             "api_key": api_key,
-            "api_base": model_config.api_base,
-            "model": model_config.model_name,
+            "api_base": runtime_api_base,
+            "model": runtime_model_name,
         }
         kargs: dict[str, Any] = {}
         if model_config.temperature is not None:
             kargs["temperature"] = model_config.temperature
         if model_config.max_tokens is not None:
             kargs["max_tokens"] = model_config.max_tokens
-        if model_config.provider_kwargs:
-            kargs.update(model_config.provider_kwargs)
+        if provider_kwargs:
+            kargs.update(provider_kwargs)
         if kargs:
             payload["kargs"] = kargs
         return payload
 
-    async def _run_elmes_command(self, cli_args: list[str]) -> None:
-        command = [self.config.elmes_python, "-m", self.config.elmes_cli_module, *cli_args]
+    async def _run_runtime_command(self, cli_args: list[str]) -> None:
+        command = [self.config.runtime_python, "-m", self.config.runtime_cli_module, *cli_args]
         env = os.environ.copy()
         cwd = str(self.project_config.project_root)
-        if self.config.elmes_repo_path is not None:
-            cwd = str(self.config.elmes_repo_path)
-            repo_src = self.config.elmes_repo_path / "src"
-            current_pythonpath = env.get("PYTHONPATH")
-            pythonpath_parts = [str(repo_src)]
-            if current_pythonpath:
-                pythonpath_parts.append(current_pythonpath)
-            env["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
+        project_src = self.project_config.project_root / "src"
+        current_pythonpath = env.get("PYTHONPATH")
+        pythonpath_parts = [str(project_src)]
+        if current_pythonpath:
+            pythonpath_parts.append(current_pythonpath)
+        env["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
 
-        self.logger.info("Running ELMES command: %s", " ".join(command))
+        self.logger.info("Running basic education runtime command: %s", " ".join(command))
         process = await asyncio.create_subprocess_exec(
             *command,
             cwd=cwd,
@@ -363,18 +399,22 @@ class BasicEducationExecutor:
         except asyncio.TimeoutError:
             process.kill()
             await process.wait()
-            raise TimeoutError(f"ELMES command timeout after {self.config.command_timeout_seconds}s")
+            raise TimeoutError(
+                f"Basic education runtime command timeout after {self.config.command_timeout_seconds}s"
+            )
 
         stdout_text = stdout.decode("utf-8", errors="ignore").strip()
         stderr_text = stderr.decode("utf-8", errors="ignore").strip()
         if stdout_text:
-            self.logger.info("ELMES stdout:\n%s", stdout_text)
+            self.logger.info("Basic education runtime stdout:\n%s", stdout_text)
         if stderr_text:
-            self.logger.warning("ELMES stderr:\n%s", stderr_text)
+            self.logger.warning("Basic education runtime stderr:\n%s", stderr_text)
         if process.returncode != 0:
-            raise RuntimeError(f"ELMES command failed with exit code {process.returncode}")
+            raise RuntimeError(
+                f"Basic education runtime command failed with exit code {process.returncode}"
+            )
 
-    async def _import_elmes_outputs(
+    async def _import_runtime_outputs(
         self,
         *,
         scenario: BasicEducationScenarioConfig,
@@ -391,7 +431,7 @@ class BasicEducationExecutor:
             await self._write_scenario_failure(
                 scenario=scenario,
                 failure_writer=failure_writer,
-                message=f"ELMES memory path not found: {memory_path}",
+                message=f"Basic education runtime memory path not found: {memory_path}",
                 checkpoint=checkpoint,
             )
             stats.failed_samples += 1
@@ -437,9 +477,9 @@ class BasicEducationExecutor:
                     **scenario.metadata,
                     "_scene": scenario.scenario_id,
                     "multi_turn": scenario.multi_turn,
-                    "elmes_task_id": task_id,
+                    "basic_education_runtime_task_id": task_id,
                     "message_count": len(message_items) if isinstance(message_items, list) else 0,
-                    "source": "elmes",
+                    "source": "basic_education_runtime",
                 }
                 judge_metadata = {
                     "score_items": score_items,
@@ -469,8 +509,8 @@ class BasicEducationExecutor:
                     metadata=metadata,
                     judge_metadata=judge_metadata,
                     raw_response={
-                        "elmes_task": conv_obj.get("task", {}),
-                        "elmes_messages": message_items,
+                        "basic_education_runtime_task": conv_obj.get("task", {}),
+                        "basic_education_runtime_messages": message_items,
                     },
                 )
                 await raw_writer.write(
@@ -512,7 +552,7 @@ class BasicEducationExecutor:
                     timestamp=datetime.now(timezone.utc),
                     metadata={
                         "scenario_id": scenario.scenario_id,
-                        "source": "elmes_import",
+                        "source": "basic_education_runtime_import",
                     },
                 )
                 await failure_writer.write(failure.model_dump(mode="json"))
@@ -564,9 +604,9 @@ class BasicEducationExecutor:
         if not judge_enabled:
             return None, "Judge disabled for this run."
         if score is None:
-            return "unknown", "No numeric score found in ELMES eval output."
+            return "unknown", "No numeric score found in basic education runtime eval output."
         if threshold is None:
-            return "pass", "Scored result imported from ELMES (no pass threshold configured)."
+            return "pass", "Scored result imported from basic education runtime (no pass threshold configured)."
         if score >= threshold:
             return "pass", f"Score {score:.4f} >= threshold {threshold:.4f}."
         return "fail", f"Score {score:.4f} < threshold {threshold:.4f}."
@@ -588,7 +628,7 @@ class BasicEducationExecutor:
         return obj
 
 
-def count_elmes_tasks(config_obj: dict[str, Any]) -> int:
+def count_runtime_tasks(config_obj: dict[str, Any]) -> int:
     tasks_obj = config_obj.get("tasks")
     if not isinstance(tasks_obj, dict):
         return 0
