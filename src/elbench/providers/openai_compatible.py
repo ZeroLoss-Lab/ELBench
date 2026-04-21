@@ -77,10 +77,26 @@ class OpenAICompatibleClient(ModelClient):
             return ""
         message = choices[0].get("message", {})
         content = message.get("content", "")
+        if content is None:
+            content = ""
         if isinstance(content, list):
-            return "".join(
+            text = "".join(
                 part.get("text", "") if isinstance(part, dict) else str(part)
                 for part in content
             )
-        return str(content)
+            if text.strip():
+                return text
+        elif str(content).strip():
+            return str(content)
 
+        # Some OpenAI-compatible backends return the generated text only in
+        # reasoning_content when content is null or empty.
+        reasoning_content = message.get("reasoning_content", "")
+        if isinstance(reasoning_content, list):
+            return "".join(
+                part.get("text", "") if isinstance(part, dict) else str(part)
+                for part in reasoning_content
+            )
+        if reasoning_content is None:
+            return ""
+        return str(reasoning_content)

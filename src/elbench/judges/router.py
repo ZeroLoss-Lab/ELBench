@@ -53,6 +53,6 @@ class JudgeRouter:
             return IFEvalJudge()
         if sample.module == "通用模型" and sample.task == "math_500":
             return Math500Judge()
-        if sample.module == "通用模型" and sample.task == "aime24":
+        if sample.module == "通用模型" and sample.task in {"aime24", "aime25", "aime26"}:
             return AIMEJudge()
         return PlaceholderJudge(judge_name=f"{sample.module}_placeholder_judge")

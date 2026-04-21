@@ -29,3 +29,7 @@ tasks:
     mode: rule
   aime24:
     mode: rule
+  aime25:
+    mode: rule
+  aime26:
+    mode: rule
