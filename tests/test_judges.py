@@ -86,7 +86,7 @@ class JudgeSmokeTest(unittest.TestCase):
             prompt="dummy",
             reference={"answer": "C", "reasonableness": 1},
         )
-        response = ModelResponse(text="C")
+        response = ModelResponse(text="答案：C")
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
@@ -118,7 +118,7 @@ class JudgeSmokeTest(unittest.TestCase):
     def test_mmlu_pro_explicit_answer_match(self) -> None:
         judge = MMLUProJudge()
         sample = self._mmlu_sample("D")
-        response = ModelResponse(text="After considering the options, ANSWER: D")
+        response = ModelResponse(text="Reasoning here.\nANSWER: D")
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
@@ -127,7 +127,7 @@ class JudgeSmokeTest(unittest.TestCase):
     def test_mmlu_pro_uses_last_explicit_answer(self) -> None:
         judge = MMLUProJudge()
         sample = self._mmlu_sample("B")
-        response = ModelResponse(text="A seems tempting at first.\nBut the final line is ANSWER: B")
+        response = ModelResponse(text="A seems tempting at first.\nANSWER: B")
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
@@ -144,7 +144,7 @@ class JudgeSmokeTest(unittest.TestCase):
     def test_mmlu_pro_supports_j_option(self) -> None:
         judge = MMLUProJudge()
         sample = self._mmlu_sample("J")
-        response = ModelResponse(text="The correct choice is J.")
+        response = ModelResponse(text="ANSWER: J")
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
@@ -157,6 +157,56 @@ class JudgeSmokeTest(unittest.TestCase):
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
         self.assertEqual(result.judge_metadata["predicted_answer"], "C")
+
+    def test_mmlu_pro_requires_explicit_final_answer_format(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("D", choices="ABCD")
+        response = ModelResponse(text="Options: A B C D")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "fail")
+        self.assertIsNone(result.judge_metadata["predicted_answer"])
+
+    def test_mmlu_pro_multiple_letters_without_final_marker_fails(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("D", choices="ABCD")
+        response = ModelResponse(text="I considered A, B, C, and D. D seems possible.")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "fail")
+        self.assertIsNone(result.judge_metadata["predicted_answer"])
+
+    def test_highlevel_omni_requires_explicit_final_answer_format(self) -> None:
+        judge = HighLevelJudge()
+        sample = Sample(
+            sample_id="o2",
+            source_file="高阶育人-omni.jsonl",
+            source_path="高阶育人-omni.jsonl",
+            module="高阶育人",
+            subset="omni",
+            task="highlevel_omni",
+            prompt="dummy",
+            reference={"answer": "C", "reasonableness": 1},
+        )
+        response = ModelResponse(text="A is tempting, but C is ultimately better.")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "fail")
+        self.assertIsNone(result.judge_metadata["predicted_answer"])
+
+    def test_highlevel_omni_does_not_accept_earlier_correct_letter(self) -> None:
+        judge = HighLevelJudge()
+        sample = Sample(
+            sample_id="o3",
+            source_file="高阶育人-omni.jsonl",
+            source_path="高阶育人-omni.jsonl",
+            module="高阶育人",
+            subset="omni",
+            task="highlevel_omni",
+            prompt="dummy",
+            reference={"answer": "C", "reasonableness": 1},
+        )
+        response = ModelResponse(text="C is one possible answer, but after reconsidering I choose A.")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "fail")
+        self.assertIsNone(result.judge_metadata["predicted_answer"])
 
     def test_ifeval_no_comma_passes_and_fails(self) -> None:
         judge = IFEvalJudge()

@@ -19,6 +19,12 @@ from elbench.summary import build_summary
 
 from .basic_education import BasicEducationExecutor, DEFAULT_BASIC_MODULE_NAME
 from .rate_limit import SlidingWindowRateLimiter
+from .response_format import (
+    ResponseFormatError,
+    attach_format_metadata,
+    augment_prompt_for_format,
+    get_response_format_spec,
+)
 from .retry import is_retryable_exception, sleep_before_retry
 
 
@@ -329,11 +335,13 @@ class BenchmarkRunner:
         retry_writer: JsonlWriter,
         checkpoint: CheckpointStore,
     ) -> EvalResult:
+        prompt = augment_prompt_for_format(sample, sample.prompt)
         request = GenerationRequest(
-            prompt=sample.prompt,
+            prompt=prompt,
             temperature=model_config.temperature,
             max_tokens=model_config.max_tokens,
             stream=bool(model_config.supports_stream),
+            messages=[{"role": "user", "content": prompt}],
             provider_kwargs={},
         )
         response, retry_count = await self._generate_with_retry(
@@ -385,14 +393,47 @@ class BenchmarkRunner:
         attempts = retry_policy.max_attempts
         retryable_codes = set(retry_policy.retryable_status_codes)
         sample_key = self._sample_key(sample)
+        format_spec = get_response_format_spec(sample)
+        base_prompt = request.prompt
+        request_messages = list(request.messages) if request.messages else [{"role": "user", "content": base_prompt}]
         for attempt in range(1, attempts + 1):
             estimated_tokens = self._estimate_tokens(request.prompt, request.max_tokens)
             await limiter.acquire(estimated_tokens=estimated_tokens)
             try:
+                request.messages = request_messages
                 response = await client.generate(sample=sample, request=request)
+                response = attach_format_metadata(response, format_spec)
                 response.retry_count = attempt - 1
                 await checkpoint.set_retry_count(sample_key, attempt - 1)
                 return response, attempt - 1
+            except ResponseFormatError as exc:
+                await checkpoint.set_retry_count(sample_key, attempt)
+                if attempt >= attempts:
+                    raise
+                delay = await sleep_before_retry(retry_policy, attempt)
+                previous_response_text = ""
+                if "response" in locals():
+                    maybe_response = locals()["response"]
+                    if isinstance(maybe_response, ModelResponse):
+                        previous_response_text = maybe_response.text or ""
+                reminder = format_spec.build_reminder(previous_response_text) if format_spec else ""
+                request_messages = [
+                    {"role": "user", "content": base_prompt},
+                    {"role": "assistant", "content": previous_response_text},
+                    {"role": "user", "content": reminder},
+                ]
+                await retry_writer.write(
+                    {
+                        "sample_id": sample.sample_id,
+                        "source_file": sample.source_file,
+                        "attempt": attempt,
+                        "next_delay_seconds": delay,
+                        "error_type": type(exc).__name__,
+                        "error_message": str(exc),
+                        "retry_reason": "format_invalid",
+                        "format_metadata": exc.metadata,
+                    }
+                )
             except Exception as exc:  # noqa: BLE001
                 await checkpoint.set_retry_count(sample_key, attempt)
                 if attempt >= attempts or not is_retryable_exception(exc, retryable_codes):

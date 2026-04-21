@@ -55,7 +55,10 @@ class OpenAICompatibleClient(ModelClient):
         )
         if request.system_prompt and supports_system:
             messages.append({"role": "system", "content": request.system_prompt})
-        messages.append({"role": "user", "content": request.prompt})
+        if request.messages:
+            messages.extend(request.messages)
+        else:
+            messages.append({"role": "user", "content": request.prompt})
         payload: dict[str, Any] = {
             "model": self.model_config.model_name,
             "messages": messages,

@@ -34,6 +34,7 @@ class GenerationRequest(BaseModel):
     max_tokens: int | None = None
     stream: bool = False
     reasoning: dict[str, Any] | None = None
+    messages: list[dict[str, str]] = Field(default_factory=list)
     provider_kwargs: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -45,6 +46,8 @@ class ModelResponse(BaseModel):
     retry_count: int = 0
     status_code: int | None = None
     error: str | None = None
+    format_valid: bool | None = None
+    format_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class JudgeResult(BaseModel):

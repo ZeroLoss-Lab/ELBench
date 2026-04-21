@@ -26,6 +26,33 @@ def extract_choice_letters(text: str | None) -> list[str]:
     return deduped
 
 
+def extract_single_choice_answer(
+    text: str | None,
+    valid_letters: list[str],
+    *,
+    answer_prefixes: list[str],
+) -> str | None:
+    if not text or not valid_letters or not answer_prefixes:
+        return None
+
+    lines = [line.strip() for line in str(text).splitlines() if line.strip()]
+    if not lines:
+        return None
+
+    valid_pattern = "".join(re.escape(letter) for letter in valid_letters)
+    last_line = lines[-1]
+
+    for prefix in answer_prefixes:
+        match = re.fullmatch(
+            rf"{re.escape(prefix)}\s*[:：]\s*\(?\s*([{valid_pattern}])\s*\)?[.。]?",
+            last_line,
+            flags=re.I,
+        )
+        if match:
+            return match.group(1).upper()
+    return None
+
+
 def parse_score_value(value: Any) -> tuple[float | None, float | None]:
     if value is None:
         return None, None

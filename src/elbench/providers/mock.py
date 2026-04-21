@@ -15,8 +15,7 @@ class MockModelClient(ModelClient):
         if mode == "judge_json":
             text = self._judge_json_response(request.prompt)
         else:
-            prefix = self.model_config.provider_kwargs.get("prefix", "")
-            text = f"{prefix} module={sample.module} subset={sample.subset} sample_id={sample.sample_id}\n{request.prompt[:200]}"
+            text = self._benchmark_response(sample, request)
         latency_ms = (perf_counter() - start) * 1000
         return ModelResponse(
             text=text,
@@ -24,6 +23,28 @@ class MockModelClient(ModelClient):
             usage={"estimated_prompt_chars": len(request.prompt)},
             latency_ms=latency_ms,
         )
+
+    def _benchmark_response(self, sample: Sample, request: GenerationRequest) -> str:
+        mode = self.model_config.provider_kwargs.get("mode")
+        if mode == "format_retry_probe":
+            return self._format_retry_probe_response(request)
+        if sample.task == "mmlu_pro":
+            return "ANSWER: A"
+        if sample.task == "ceval":
+            return "答案：A"
+        if sample.task == "highlevel_omni":
+            return "答案：A"
+        prefix = self.model_config.provider_kwargs.get("prefix", "")
+        return f"{prefix} module={sample.module} subset={sample.subset} sample_id={sample.sample_id}\n{request.prompt[:200]}"
+
+    def _format_retry_probe_response(self, request: GenerationRequest) -> str:
+        messages = request.messages or [{"role": "user", "content": request.prompt}]
+        joined = "\n".join(str(message.get("content", "")) for message in messages if isinstance(message, dict))
+        if "did not follow the required answer format" in joined or "没有遵守规定格式" in joined:
+            if "答案：[LETTER]" in joined:
+                return "答案：A"
+            return "ANSWER: A"
+        return "I think the answer is A."
 
     def _judge_json_response(self, prompt: str) -> str:
         task = _extract_section_value(prompt, "JUDGE_TASK")
