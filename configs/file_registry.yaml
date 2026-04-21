@@ -161,3 +161,29 @@ files:
     filename_patterns:
       - aime24_sampled.jsonl
     aliases: []
+  - canonical_name: aime25.jsonl
+    module: 通用模型
+    subset: aime25
+    file_type: jsonl
+    task: aime25
+    loader_name: aime_jsonl
+    mapping_key: aime_jsonl
+    path_hints:
+      - 通用/aime25.jsonl
+      - aime25.jsonl
+    filename_patterns:
+      - aime25.jsonl
+    aliases: []
+  - canonical_name: aime26.jsonl
+    module: 通用模型
+    subset: aime26
+    file_type: jsonl
+    task: aime26
+    loader_name: aime_jsonl
+    mapping_key: aime_jsonl
+    path_hints:
+      - 通用/aime26.jsonl
+      - aime26.jsonl
+    filename_patterns:
+      - aime26.jsonl
+    aliases: []
