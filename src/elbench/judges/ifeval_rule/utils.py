@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Dict, Optional, Union
 
-from elbench.judges.ifeval_rule import instructions_registry
+from . import instructions_registry
 
 
 @dataclasses.dataclass
@@ -131,7 +131,6 @@ def process_results(doc, results):
 def agg_inst_level_acc(items):
     inst_level_acc = sum(items) / len(items) if items else 0
     return inst_level_acc
-
 
 def main():
     doc = {'instruction_id_list': ['punctuation:no_comma', 'detectable_format:number_highlighted_sections', 'length_constraints:number_words'], 'key': 1000, 'kwargs': [{'capital_frequency': None, 'capital_relation': None, 'end_phrase': None, 'first_word': None, 'forbidden_words': None, 'frequency': None, 'keyword': None, 'keywords': None, 'language': None, 'let_frequency': None, 'let_relation': None, 'letter': None, 'nth_paragraph': None, 'num_bullets': None, 'num_highlights': None, 'num_paragraphs': None, 'num_placeholders': None, 'num_sections': None, 'num_sentences': None, 'num_words': None, 'postscript_marker': None, 'prompt_to_repeat': None, 'relation': None, 'section_spliter': None}, {'capital_frequency': None, 'capital_relation': None, 'end_phrase': None, 'first_word': None, 'forbidden_words': None, 'frequency': None, 'keyword': None, 'keywords': None, 'language': None, 'let_frequency': None, 'let_relation': None, 'letter': None, 'nth_paragraph': None, 'num_bullets': None, 'num_highlights': 3, 'num_paragraphs': None, 'num_placeholders': None, 'num_sections': None, 'num_sentences': None, 'num_words': None, 'postscript_marker': None, 'prompt_to_repeat': None, 'relation': None, 'section_spliter': None}, {'capital_frequency': None, 'capital_relation': None, 'end_phrase': None, 'first_word': None, 'forbidden_words': None, 'frequency': None, 'keyword': None, 'keywords': None, 'language': None, 'let_frequency': None, 'let_relation': None, 'letter': None, 'nth_paragraph': None, 'num_bullets': None, 'num_highlights': None, 'num_paragraphs': None, 'num_placeholders': None, 'num_sections': None, 'num_sentences': None, 'num_words': 300, 'postscript_marker': None, 'prompt_to_repeat': None, 'relation': 'at least', 'section_spliter': None}], 'prompt': 'Write a 300+ word summary of the wikipedia page "https://en.wikipedia.org/wiki/Raymond_III,_Count_of_Tripoli". Do not use any commas and highlight at least 3 sections that has titles in markdown format, for example *highlighted section part 1*, *highlighted section part 2*, *highlighted section part 3*.'}
