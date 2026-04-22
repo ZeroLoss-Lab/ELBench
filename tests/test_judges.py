@@ -1,4 +1,5 @@
 ﻿import asyncio
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -15,7 +16,9 @@ from elbench.judges.judge_mmlu import MMLUProJudge
 from elbench.judges.judge_teaching_harm import TeachingHarmJudge
 from elbench.judges.llm_judge import LLMJudge
 from elbench.judges.router import JudgeRouter
+from elbench.judges.ifeval_rule.instructions_registry import INSTRUCTION_DICT
 from elbench.config import load_project_config
+from elbench.registry import FileRegistry
 from elbench.schemas.config import JudgeTaskConfig
 from elbench.schemas.evaluation import ModelResponse, Sample
 
@@ -273,14 +276,24 @@ class JudgeSmokeTest(unittest.TestCase):
         self.assertEqual(result.judge_metadata["prompt_level_strict"], 0.0)
         self.assertEqual(result.judge_metadata["prompt_level_loose"], 1.0)
 
-    def test_ifeval_unknown_instruction_fails_with_metadata(self) -> None:
-        judge = IFEvalJudge()
-        sample = self._ifeval_sample(["unknown:instruction"], [{}])
-        result = asyncio.run(judge.judge(sample, ModelResponse(text="anything")))
+    def test_ifeval_dataset_instructions_are_all_registered(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"ifeval_sampled.jsonl"})
+        self.assertEqual(len(resolved), 1)
 
-        self.assertEqual(result.judge_result, "fail")
-        self.assertEqual(result.score, 0.0)
-        self.assertEqual(result.judge_metadata["unsupported_instructions"], ["unknown:instruction"])
+        instruction_ids: set[str] = set()
+        with resolved[0].path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                if not line.strip():
+                    continue
+                record = json.loads(line)
+                metadata = record.get("metadata") or {}
+                raw_instruction_ids = metadata.get("instruction_id_list") or []
+                instruction_ids.update(str(item) for item in raw_instruction_ids)
+
+        self.assertTrue(instruction_ids)
+        self.assertTrue(instruction_ids.issubset(set(INSTRUCTION_DICT)))
 
     def test_math_500_extracts_boxed_answer(self) -> None:
         judge = Math500Judge()

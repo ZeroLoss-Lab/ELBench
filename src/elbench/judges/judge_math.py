@@ -16,7 +16,8 @@ class Math500Judge(BaseJudge):
     _loader = MATH500JsonlLoader()
 
     async def judge(self, sample: Sample, response: ModelResponse) -> JudgeResult:
-        expected_answer = self._loader.expected_answer_from_sample(sample)
+        expected_raw = self._loader.expected_answer_from_sample(sample)
+        expected_answer = strip_answer_string(expected_raw)
         predicted_answer = extract_answer(response.text or "")
         passed = process_math500(predicted_answer, expected_answer) == 1.0
         return JudgeResult(
@@ -27,6 +28,7 @@ class Math500Judge(BaseJudge):
             judge_metadata={
                 "predicted_answer": predicted_answer,
                 "expected_answer": expected_answer,
+                "raw_expected_answer": expected_raw,
                 "question_id": sample.metadata.get("question_id"),
                 "level": sample.dimension or sample.metadata.get("subset_key"),
             },
@@ -54,11 +56,11 @@ class AIMEJudge(Math500Judge):
 
 class GSM8KJudge(Math500Judge):
     async def judge(self, sample: Sample, response: ModelResponse) -> JudgeResult:
-        expected_answer = self._expected_answer(sample)
-        predicted_answer = self.extract_answer(response.text or "")
-        normalized_prediction = self.strip_answer_string(predicted_answer)
-        normalized_expected = self.strip_answer_string(expected_answer)
-        passed = self.math_equal(normalized_prediction, normalized_expected)
+        expected_answer = self._loader.expected_answer_from_sample(sample)
+        predicted_answer = extract_answer(response.text or "")
+        normalized_prediction = strip_answer_string(predicted_answer)
+        normalized_expected = strip_answer_string(expected_answer)
+        passed = math_equal(normalized_prediction, normalized_expected)
         return JudgeResult(
             judge_name="gsm8k_exact_match",
             judge_result="pass" if passed else "fail",
