@@ -4,14 +4,17 @@ import re
 from typing import Any, Callable
 
 from elbench.judges.base import BaseJudge
+from elbench.loaders.general_capability_loader import IFEvalJsonlLoader
 from elbench.schemas.evaluation import JudgeResult, ModelResponse, Sample
 
 
 class IFEvalJudge(BaseJudge):
+    _loader = IFEvalJsonlLoader()
+
     async def judge(self, sample: Sample, response: ModelResponse) -> JudgeResult:
         text = response.text or ""
-        instruction_ids = self._instruction_ids(sample)
-        kwargs_list = self._kwargs(sample)
+        instruction_ids = self._loader.instruction_ids_from_sample(sample)
+        kwargs_list = self._loader.kwargs_from_sample(sample)
         strict_results = self._evaluate_instructions(instruction_ids, kwargs_list, text, loose=False)
         loose_results = self._evaluate_instructions(instruction_ids, kwargs_list, text, loose=True)
         unsupported = [
@@ -42,7 +45,7 @@ class IFEvalJudge(BaseJudge):
                 "inst_level_loose": inst_level_loose,
                 "instruction_id_list": instruction_ids,
                 "kwargs": kwargs_list,
-                "prompt_key": sample.metadata.get("key"),
+                "prompt_key": self._loader.prompt_key_from_sample(sample),
                 "strict_results": strict_results,
                 "loose_results": loose_results,
                 "unsupported_instructions": unsupported,
@@ -140,18 +143,6 @@ class IFEvalJudge(BaseJudge):
         if not results:
             return 0.0
         return sum(1.0 for result in results if result.get("passed")) / len(results)
-
-    def _instruction_ids(self, sample: Sample) -> list[str]:
-        value = sample.metadata.get("instruction_id_list")
-        if isinstance(value, list):
-            return [str(item) for item in value]
-        return []
-
-    def _kwargs(self, sample: Sample) -> list[dict[str, Any]]:
-        value = sample.metadata.get("kwargs")
-        if not isinstance(value, list):
-            return []
-        return [item if isinstance(item, dict) else {} for item in value]
 
     def _int_arg(self, value: Any, *, default: int) -> int:
         try:

@@ -2,7 +2,7 @@
 
 from elbench.loaders.base import BaseLoader
 from elbench.loaders.jsonl_loader import JsonlLoader
-from elbench.loaders.mmlu_pro_loader import (
+from elbench.loaders.general_capability_loader import (
     AIMEJsonlLoader,
     CEvalJsonlLoader,
     IFEvalJsonlLoader,

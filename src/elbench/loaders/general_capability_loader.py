@@ -215,6 +215,15 @@ class IFEvalJsonlLoader(BaseLoader):
             return ""
         return str(value)
 
+    def instruction_ids_from_sample(self, sample: Sample) -> list[str]:
+        return self._instruction_ids(sample.metadata.get("instruction_id_list"))
+
+    def kwargs_from_sample(self, sample: Sample) -> list[dict[str, Any]]:
+        return self._kwargs(sample.metadata.get("kwargs"))
+
+    def prompt_key_from_sample(self, sample: Sample) -> str:
+        return self._string_or_empty(sample.metadata.get("key"))
+
 
 class MATH500JsonlLoader(BaseLoader):
     def iter_raw_records(self, item: ResolvedRegistryItem) -> Iterator[RawRecord]:
