@@ -310,3 +310,24 @@ class AIMEJudge(Math500Judge):
                 "normalized_expected": normalized_expected,
             },
         )
+
+
+class GSM8KJudge(Math500Judge):
+    async def judge(self, sample: Sample, response: ModelResponse) -> JudgeResult:
+        expected_answer = self._expected_answer(sample)
+        predicted_answer = self.extract_answer(response.text or "")
+        normalized_prediction = self.strip_answer_string(predicted_answer)
+        normalized_expected = self.strip_answer_string(expected_answer)
+        passed = self.math_equal(normalized_prediction, normalized_expected)
+        return JudgeResult(
+            judge_name="gsm8k_exact_match",
+            judge_result="pass" if passed else "fail",
+            score=1.0 if passed else 0.0,
+            judge_reason="GSM8K answer matched reference." if passed else "GSM8K answer did not match reference.",
+            judge_metadata={
+                "predicted_answer": predicted_answer,
+                "expected_answer": expected_answer,
+                "normalized_prediction": normalized_prediction,
+                "normalized_expected": normalized_expected,
+            },
+        )

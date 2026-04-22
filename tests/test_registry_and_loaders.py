@@ -17,7 +17,7 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
         config = load_project_config(Path("configs"))
         registry = FileRegistry(config)
         resolved = registry.resolve()
-        self.assertEqual(len(resolved), 16)
+        self.assertEqual(len(resolved), 19)
 
     def test_loaders_produce_samples(self) -> None:
         config = load_project_config(Path("configs"))
@@ -154,6 +154,48 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
         self.assertIn("Every morning Aya goes", sample.prompt)
         self.assertIn("Put your answer inside \\boxed{}", sample.prompt)
         self.assertEqual((sample.reference or {}).get("target"), "\\boxed{204}")
+
+    def test_aime25_uses_aime_loader_and_default_dimension(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"aime25.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample = next(iter(loader.iter_samples(resolved[0])))
+
+        self.assertEqual(sample.module, "通用模型")
+        self.assertEqual(sample.task, "aime25")
+        self.assertEqual(sample.dimension, "default")
+        self.assertIn("Put your answer inside \\boxed{}", sample.prompt)
+        self.assertEqual((sample.reference or {}).get("target"), "70")
+
+    def test_aime26_uses_aime_loader_and_default_dimension(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"aime26.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample = next(iter(loader.iter_samples(resolved[0])))
+
+        self.assertEqual(sample.module, "通用模型")
+        self.assertEqual(sample.task, "aime26")
+        self.assertEqual(sample.dimension, "default")
+        self.assertIn("Put your answer inside \\boxed{}", sample.prompt)
+        self.assertEqual((sample.reference or {}).get("target"), "277")
+
+    def test_gsm8k_uses_math_reasoning_loader(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"gsm8k_sampled.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample = next(iter(loader.iter_samples(resolved[0])))
+
+        self.assertEqual(sample.module, "通用模型")
+        self.assertEqual(sample.task, "gsm8k")
+        self.assertEqual(sample.dimension, "default")
+        self.assertIn("Please reason step by step", sample.prompt)
+        self.assertEqual((sample.reference or {}).get("target"), "18")
 
 
 if __name__ == "__main__":
