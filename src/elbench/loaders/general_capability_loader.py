@@ -121,6 +121,23 @@ class MMLUProJsonlLoader(BaseLoader):
             return None
         return str(value)
 
+    def expected_answer_from_sample(self, sample: Sample) -> str | None:
+        reference = sample.reference or {}
+        if isinstance(reference, dict):
+            value = reference.get("target")
+        else:
+            value = reference
+        if value in (None, ""):
+            return None
+        normalized = str(value).strip().upper()
+        return normalized[0] if normalized else None
+
+    def valid_letters_from_sample(self, sample: Sample) -> list[str]:
+        choices = sample.metadata.get("choices")
+        if isinstance(choices, list) and choices:
+            return [chr(65 + index) for index in range(len(choices))]
+        return list("ABCDEFGHIJ")
+
 
 class CEvalJsonlLoader(MMLUProJsonlLoader):
     pass
@@ -290,6 +307,14 @@ class MATH500JsonlLoader(BaseLoader):
         if value in (None, ""):
             return ""
         return str(value)
+
+    def expected_answer_from_sample(self, sample: Sample) -> str:
+        reference = sample.reference or {}
+        if isinstance(reference, dict):
+            value = reference.get("target")
+        else:
+            value = reference
+        return "" if value in (None, "") else str(value)
 
 
 class AIMEJsonlLoader(MATH500JsonlLoader):

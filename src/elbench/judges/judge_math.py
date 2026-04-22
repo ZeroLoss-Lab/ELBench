@@ -6,6 +6,7 @@ from fractions import Fraction
 from typing import Any
 
 from elbench.judges.base import BaseJudge
+from elbench.loaders.general_capability_loader import MATH500JsonlLoader
 from elbench.schemas.evaluation import JudgeResult, ModelResponse, Sample
 
 try:
@@ -22,8 +23,10 @@ except Exception:
 
 
 class Math500Judge(BaseJudge):
+    _loader = MATH500JsonlLoader()
+
     async def judge(self, sample: Sample, response: ModelResponse) -> JudgeResult:
-        expected_answer = self._expected_answer(sample)
+        expected_answer = self._loader.expected_answer_from_sample(sample)
         predicted_answer = self.extract_answer(response.text or "")
         normalized_prediction = self.strip_answer_string(predicted_answer)
         normalized_expected = self.strip_answer_string(expected_answer)
@@ -133,14 +136,6 @@ class Math500Judge(BaseJudge):
         if self._symbolic_equal(pred, ref):
             return True
         return False
-
-    def _expected_answer(self, sample: Sample) -> str:
-        reference = sample.reference or {}
-        if isinstance(reference, dict):
-            value = reference.get("target")
-        else:
-            value = reference
-        return "" if value in (None, "") else str(value)
 
     def _extract_boxed(self, value: str) -> str:
         ans = value.split("boxed")[-1]
@@ -291,7 +286,7 @@ class Math500Judge(BaseJudge):
 
 class AIMEJudge(Math500Judge):
     async def judge(self, sample: Sample, response: ModelResponse) -> JudgeResult:
-        expected_raw = self._expected_answer(sample)
+        expected_raw = self._loader.expected_answer_from_sample(sample)
         expected_answer = self.extract_answer(expected_raw, use_last_number=False) or self.strip_answer_string(expected_raw)
         predicted_answer = self.extract_answer(response.text or "")
         normalized_prediction = self.strip_answer_string(predicted_answer)
