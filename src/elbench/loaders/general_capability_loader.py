@@ -266,7 +266,7 @@ class MATH500JsonlLoader(BaseLoader):
                 module=item.entry.module,
                 subset=item.entry.subset,
                 task=item.entry.task,
-                dimension=self._string_or_none(record.get("subset_key")),
+                dimension=self._string_or_none(record.get("subset_key")) or "default",
                 prompt=self._prompt(record),
                 reference={"target": self._string_or_empty(record.get("target"))},
                 metadata=metadata,

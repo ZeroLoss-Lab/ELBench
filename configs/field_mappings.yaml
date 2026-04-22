@@ -60,6 +60,12 @@ mappings:
     dimension_fields: [field]
     reference_fields: [answer, reasonableness]
     metadata_fields: [type, field, answer, reasonableness]
+  basic_education_yaml:
+    sample_id_fields: []
+    prompt_fields: []
+    dimension_fields: []
+    reference_fields: []
+    metadata_fields: []
   mmlu_pro_jsonl:
     sample_id_fields: [id]
     prompt_fields: []

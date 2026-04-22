@@ -22,6 +22,6 @@ benchmark_modules:
   active:
     - 安全可信
     - 高阶育人
-  reserved:
     - 通用模型
     - 基本教育
+  reserved: []

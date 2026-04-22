@@ -10,7 +10,7 @@ if str(SRC) not in sys.path:
 
 from elbench.judges.judge_highlevel import HighLevelJudge
 from elbench.judges.judge_ifeval import IFEvalJudge
-from elbench.judges.judge_math import AIMEJudge, Math500Judge
+from elbench.judges.judge_math import AIMEJudge, GSM8KJudge, Math500Judge
 from elbench.judges.judge_mmlu import MMLUProJudge
 from elbench.judges.judge_teaching_harm import TeachingHarmJudge
 from elbench.judges.llm_judge import LLMJudge
@@ -86,7 +86,7 @@ class JudgeSmokeTest(unittest.TestCase):
             prompt="dummy",
             reference={"answer": "C", "reasonableness": 1},
         )
-        response = ModelResponse(text="C")
+        response = ModelResponse(text="答案：C")
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
@@ -118,7 +118,7 @@ class JudgeSmokeTest(unittest.TestCase):
     def test_mmlu_pro_explicit_answer_match(self) -> None:
         judge = MMLUProJudge()
         sample = self._mmlu_sample("D")
-        response = ModelResponse(text="After considering the options, ANSWER: D")
+        response = ModelResponse(text="Reasoning here.\nANSWER: D")
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
@@ -127,7 +127,7 @@ class JudgeSmokeTest(unittest.TestCase):
     def test_mmlu_pro_uses_last_explicit_answer(self) -> None:
         judge = MMLUProJudge()
         sample = self._mmlu_sample("B")
-        response = ModelResponse(text="A seems tempting at first.\nBut the final line is ANSWER: B")
+        response = ModelResponse(text="A seems tempting at first.\nANSWER: B")
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
@@ -144,7 +144,7 @@ class JudgeSmokeTest(unittest.TestCase):
     def test_mmlu_pro_supports_j_option(self) -> None:
         judge = MMLUProJudge()
         sample = self._mmlu_sample("J")
-        response = ModelResponse(text="The correct choice is J.")
+        response = ModelResponse(text="ANSWER: J")
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
@@ -157,6 +157,56 @@ class JudgeSmokeTest(unittest.TestCase):
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
         self.assertEqual(result.judge_metadata["predicted_answer"], "C")
+
+    def test_mmlu_pro_requires_explicit_final_answer_format(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("D", choices="ABCD")
+        response = ModelResponse(text="Options: A B C D")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "fail")
+        self.assertIsNone(result.judge_metadata["predicted_answer"])
+
+    def test_mmlu_pro_multiple_letters_without_final_marker_fails(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("D", choices="ABCD")
+        response = ModelResponse(text="I considered A, B, C, and D. D seems possible.")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "fail")
+        self.assertIsNone(result.judge_metadata["predicted_answer"])
+
+    def test_highlevel_omni_requires_explicit_final_answer_format(self) -> None:
+        judge = HighLevelJudge()
+        sample = Sample(
+            sample_id="o2",
+            source_file="高阶育人-omni.jsonl",
+            source_path="高阶育人-omni.jsonl",
+            module="高阶育人",
+            subset="omni",
+            task="highlevel_omni",
+            prompt="dummy",
+            reference={"answer": "C", "reasonableness": 1},
+        )
+        response = ModelResponse(text="A is tempting, but C is ultimately better.")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "fail")
+        self.assertIsNone(result.judge_metadata["predicted_answer"])
+
+    def test_highlevel_omni_does_not_accept_earlier_correct_letter(self) -> None:
+        judge = HighLevelJudge()
+        sample = Sample(
+            sample_id="o3",
+            source_file="高阶育人-omni.jsonl",
+            source_path="高阶育人-omni.jsonl",
+            module="高阶育人",
+            subset="omni",
+            task="highlevel_omni",
+            prompt="dummy",
+            reference={"answer": "C", "reasonableness": 1},
+        )
+        response = ModelResponse(text="C is one possible answer, but after reconsidering I choose A.")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "fail")
+        self.assertIsNone(result.judge_metadata["predicted_answer"])
 
     def test_ifeval_no_comma_passes_and_fails(self) -> None:
         judge = IFEvalJudge()
@@ -298,6 +348,32 @@ class JudgeSmokeTest(unittest.TestCase):
         self.assertEqual(result.judge_result, "fail")
         self.assertEqual(result.score, 0.0)
 
+    def test_aime25_and_aime26_use_same_rule_judge(self) -> None:
+        config = load_project_config(Path("configs"))
+        router = JudgeRouter(config)
+
+        aime25 = self._aime_sample("70", task="aime25", source_file="aime25.jsonl")
+        aime26 = self._aime_sample("277", task="aime26", source_file="aime26.jsonl")
+
+        self.assertIsInstance(router.get_judge(aime25), AIMEJudge)
+        self.assertIsInstance(router.get_judge(aime26), AIMEJudge)
+
+    def test_gsm8k_exact_match(self) -> None:
+        judge = GSM8KJudge()
+        sample = self._gsm8k_sample("18")
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="The answer is \\boxed{18}")))
+
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+
+    def test_gsm8k_wrong_answer_fails(self) -> None:
+        judge = GSM8KJudge()
+        sample = self._gsm8k_sample("18")
+        result = asyncio.run(judge.judge(sample, ModelResponse(text="The answer is \\boxed{19}")))
+
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.score, 0.0)
+
     def _mmlu_sample(self, target: str, task: str = "mmlu_pro", choices: str = "ABCDEFGHIJ") -> Sample:
         return Sample(
             sample_id="mmlu1",
@@ -344,14 +420,28 @@ class JudgeSmokeTest(unittest.TestCase):
             metadata={"question_id": "test/example.json", "subset_key": "Level 2"},
         )
 
-    def _aime_sample(self, target: str) -> Sample:
+    def _aime_sample(self, target: str, task: str = "aime24", source_file: str = "aime24_sampled.jsonl") -> Sample:
         return Sample(
             sample_id="aime1",
-            source_file="aime24_sampled.jsonl",
-            source_path="aime24_sampled.jsonl",
+            source_file=source_file,
+            source_path=source_file,
             module="通用模型",
-            subset="aime24",
-            task="aime24",
+            subset=task,
+            task=task,
+            dimension="default",
+            prompt="dummy",
+            reference={"target": target},
+            metadata={},
+        )
+
+    def _gsm8k_sample(self, target: str) -> Sample:
+        return Sample(
+            sample_id="gsm1",
+            source_file="gsm8k_sampled.jsonl",
+            source_path="gsm8k_sampled.jsonl",
+            module="通用模型",
+            subset="gsm8k",
+            task="gsm8k",
             dimension="default",
             prompt="dummy",
             reference={"target": target},

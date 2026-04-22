@@ -12,6 +12,6 @@ modules:
     description: 通用模型能力 benchmark。
     owner: current
   - module_name: 基本教育
-    enabled: false
-    description: 预留模块，后续接入基础教育 benchmark。
-    owner: reserved
+    enabled: true
+    description: 基本教育多场景评测（45题），运行时使用内部 basic_education_runtime 多轮执行模块。
+    owner: current

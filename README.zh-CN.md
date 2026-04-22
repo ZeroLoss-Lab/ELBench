@@ -1,36 +1,43 @@
-﻿# ELBench
+# ELBench
 
 [![English](https://img.shields.io/badge/Language-English-blue.svg)](./README.md)
-[![简体中文](https://img.shields.io/badge/%E8%AF%AD%E8%A8%80-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-red.svg)](./README.zh-CN.md)
+[![简体中文](https://img.shields.io/badge/Language-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-red.svg)](./README.zh-CN.md)
 
-一个面向教育大模型评测的配置驱动 benchmark 框架。
+一个面向教育大模型长期评测的配置驱动 benchmark 框架。
 
-ELBench 不是一次性脚本，而是按长期维护的正式工程来设计的。目前重点覆盖两个模块：
+ELBench 不是临时脚本，而是按正式工程维护的评测系统。当前仓库统一承载四个模块：
 
 - `安全可信`
 - `高阶育人`
-
-同时已经预留后续扩展空间：
-
-- `通用模型`
 - `基本教育`
+- `通用模型`
 
-## 项目概览
+当前已正式注册进框架的 benchmark 资产规模是：
 
-这套框架遵循以下几个核心原则：
+- `安全可信`：5 个文件
+- `高阶育人`：2 个文件
+- `基本教育`：4 个 YAML 场景，共 `45` 题
+- `通用模型`：5 个单轮 benchmark 文件
 
-- 评测流程由注册表和配置驱动，而不是靠脚本里硬编码文件逻辑。
-- 模型调用统一走 provider adapter 抽象层。
-- 客观题使用规则或标准答案判分。
-- 主观开放题使用 `LLM-as-a-Judge`。
-- 输出、日志、checkpoint、summary 使用稳定的数据结构。
-- 中断后支持断点续跑。
+`基本教育` 已作为 ELBench 的正式模块接入。它的 benchmark 数据放在 `data/benchmark_root/基本教育/`，多轮执行由项目内部的 `basic_education_runtime` 模块负责，代码位于 `src/elbench/basic_education_runtime/`。
 
-## 当前支持范围
+这个内部运行时来源于 ELMES 项目，但现在已经按 ELBench 的内部模块方式接管和维护。
 
-### 已接入的数据文件
+## 设计原则
 
-当前已接入以下 benchmark 文件：
+- 评测流程由注册表和配置驱动，不在主流程里写死文件逻辑
+- 模型调用统一走 provider adapter，不让厂商差异污染主 runner
+- 客观题优先规则判分
+- 主观开放题走 `LLM-as-a-Judge`
+- 输出、日志、checkpoint、summary 保持稳定结构
+- 中断后支持断点续跑
+- 并发可配置，默认全局最大并发为 `100`
+
+## 当前真正接上的内容
+
+### 当前已注册的 benchmark 文件
+
+`configs/file_registry.yaml` 当前会解析这些文件：
 
 - `安全拒答.jsonl`
 - `安全引导.jsonl`
@@ -39,13 +46,29 @@ ELBench 不是一次性脚本，而是按长期维护的正式工程来设计的
 - `adversarial_prompts.xlsx`
 - `高阶育人-edu.jsonl`
 - `高阶育人-omni.jsonl`
+- `knowledge.yaml`
+- `question.yaml`
+- `cross.yaml`
+- `config_guided_task.yaml`
+- `mmlu_pro_sampled.jsonl`
+- `ceval_sampled.jsonl`
+- `ifeval_sampled.jsonl`
+- `math_500_sampled.jsonl`
+- `aime24_sampled.jsonl`
+
+只有进入 `configs/file_registry.yaml` 的文件，才算 ELBench 当前正式可运行的 benchmark 数据。
 
 ### 当前判分策略
 
 客观题走规则或参考答案判分：
 
-- `SATAs.xlsx`：多选精确集合匹配
-- `高阶育人-omni.jsonl`：标准答案精确匹配
+- `SATAs.xlsx`
+- `高阶育人-omni.jsonl`
+- `mmlu_pro_sampled.jsonl`
+- `ceval_sampled.jsonl`
+- `ifeval_sampled.jsonl`
+- `math_500_sampled.jsonl`
+- `aime24_sampled.jsonl`
 
 主观开放题走 `LLM-as-a-Judge`：
 
@@ -55,7 +78,7 @@ ELBench 不是一次性脚本，而是按长期维护的正式工程来设计的
 - `adversarial_prompts.xlsx`
 - `高阶育人-edu.jsonl`
 
-当前阶段，外部模型 API 仍然保持可插拔占位设计。仓库内提供了 `mock` provider，因此即使不接外部 API，也能在本地把整条评测链路跑通。
+当前阶段，外部模型接入仍保持可插拔设计。仓库内提供了 `mock.default` 和 `mock.judge`，用于本地验证整条评测链路。
 
 ## 仓库结构
 
@@ -63,8 +86,9 @@ ELBench 不是一次性脚本，而是按长期维护的正式工程来设计的
 .
 ├── configs/
 │   ├── app.yaml
-│   ├── file_registry.yaml
+│   ├── basic_education.yaml
 │   ├── field_mappings.yaml
+│   ├── file_registry.yaml
 │   ├── judges.yaml
 │   ├── models.yaml
 │   ├── module_registry.yaml
@@ -72,12 +96,16 @@ ELBench 不是一次性脚本，而是按长期维护的正式工程来设计的
 ├── data/
 │   └── benchmark_root/
 │       ├── 安全可信/
-│       └── 高阶育人/
-├── outputs/
+│       ├── 高阶育人/
+│       ├── 基本教育/
+│       └── 通用/
+├── docs/
+│   └── TEAM_MAINTENANCE_GUIDE.zh-CN.md
 ├── scripts/
 │   └── run_benchmark.py
 ├── src/
 │   └── elbench/
+│       ├── basic_education_runtime/
 │       ├── cli.py
 │       ├── config/
 │       ├── execution/
@@ -92,19 +120,19 @@ ELBench 不是一次性脚本，而是按长期维护的正式工程来设计的
 └── tests/
 ```
 
-## 核心设计
+`scripts/run_benchmark.py` 只是薄入口。真正的评测逻辑都在 `src/elbench/` 下面。
 
-### 1. 基于注册表的数据加载
+## 核心架构
 
-评测系统不会在主流程里写死具体文件逻辑。
+### 注册表与 schema 适配
 
-- `configs/file_registry.yaml` 负责把 benchmark 文件映射到 module、subset、task、loader
-- `configs/field_mappings.yaml` 负责把原始字段映射到统一内部 sample schema
-- JSONL 和 XLSX loader 都会输出统一的 `Sample`
+- `configs/file_registry.yaml` 负责把 benchmark 文件映射到 module、subset、task、loader 和 canonical name
+- `configs/field_mappings.yaml` 负责把原始字段映射到 ELBench 统一内部 schema
+- JSONL、XLSX、基本教育 YAML 都会被归一化为统一 `Sample`
 
-### 2. 统一 sample 数据结构
+### 统一 sample/result 结构
 
-所有样本都会被归一化为统一结构，核心字段包括：
+统一 sample 核心字段包括：
 
 - `sample_id`
 - `source_file`
@@ -116,59 +144,8 @@ ELBench 不是一次性脚本，而是按长期维护的正式工程来设计的
 - `reference`
 - `metadata`
 
-### 3. 模型适配层抽象
+执行结果会额外记录：
 
-主流程不依赖某一家 API 形态。
-
-- `ModelClient` 是统一抽象基类
-- provider adapter 位于 `src/elbench/providers/`
-- 后续新增 provider 时，原则上只需要补配置和 adapter，不需要改 runner
-
-### 4. Judge 抽象
-
-判分分成两类：
-
-- 客观题：规则 judge
-- 主观题：`LLM-as-a-Judge`
-
-judge 策略统一在 `configs/judges.yaml` 配置。
-
-### 5. 并发、恢复与可观测性
-
-当前 runner 支持：
-
-- 可配置全局并发
-- provider/model 级并发限制
-- 指数退避重试
-- 失败日志
-- 重试日志
-- checkpoint 断点续跑
-- 原始回答持久化
-- 判分结果持久化
-- 汇总统计输出
-
-默认最大并发为 `100`。
-
-## 输出目录
-
-```text
-outputs/
-├── raw_responses/
-├── judged_results/
-├── summaries/
-└── logs/
-```
-
-每条样本结果至少包含以下字段：
-
-- `sample_id`
-- `source_file`
-- `module`
-- `subset`
-- `task`
-- `dimension`
-- `prompt`
-- `reference`
 - `provider_name`
 - `model_id`
 - `model_name`
@@ -180,59 +157,130 @@ outputs/
 - `latency_ms`
 - `retry_count`
 - `timestamp`
-- `metadata`
 
-## 快速开始
+### 模型适配层
 
-### 1. 环境要求
+- `ModelClient` 是统一接口
+- 各 provider 差异封装在 `src/elbench/providers/`
+- 主 runner 不需要知道模型来自哪家厂商
 
-- Python `>= 3.11`
+### 执行、并发与恢复
 
-### 2. 安装
+runner 当前支持：
+
+- 全局并发控制
+- provider/model 级并发限制
+- 指数退避重试
+- 失败日志
+- checkpoint 断点续跑
+- 原始回答持久化
+- 判分结果持久化
+- summary 生成
+
+默认全局最大并发在 `configs/app.yaml` 中配置为 `100`。
+
+### 基本教育运行时
+
+`基本教育` 与其他模块的区别只在执行方式，不在数据治理方式：
+
+- benchmark 数据仍然放在 `data/benchmark_root/基本教育/`
+- 文件发现仍走 `configs/file_registry.yaml`
+- 多轮执行由 `src/elbench/execution/basic_education.py` 负责
+- 内部运行时代码位于 `src/elbench/basic_education_runtime/`
+
+## 输出目录
+
+```text
+outputs/
+├── raw_responses/
+├── judged_results/
+├── summaries/
+└── logs/
+```
+
+这些目录是运行时产物，默认不纳入 Git 管理。
+
+## 安装方式
+
+### 仅安装核心框架
 
 ```bash
 pip install -e .
 ```
 
-### 3. 查看当前 bench 文件解析结果
+### 安装基本教育运行时依赖
+
+```bash
+pip install -e .[basic-education]
+```
+
+### 团队开发环境
+
+```bash
+pip install -e .[basic-education,dev]
+```
+
+## 快速开始
+
+### 查看当前已注册的 benchmark 文件
 
 ```bash
 python scripts/run_benchmark.py inspect
 ```
 
-### 4. 使用 mock provider 做本地 smoke test
+### 跑一轮本地 smoke test
 
 ```bash
-python scripts/run_benchmark.py run --model-id mock.default --max-samples 3 --run-id smoke-test
+python scripts/run_benchmark.py run --model-id mock.default --max-samples 3 --run-id smoke-test --no-resume
 ```
 
 或者在可编辑安装后：
 
 ```bash
 elbench inspect
-elbench run --model-id mock.default --max-samples 3 --run-id smoke-test
+elbench run --model-id mock.default --max-samples 3 --run-id smoke-test --no-resume
 ```
 
-### 5. 运行单元测试
+### 运行基本教育
+
+当前内置场景是：
+
+- `data/benchmark_root/基本教育/知识点讲解/knowledge.yaml`（`10`）
+- `data/benchmark_root/基本教育/情景化出题/question.yaml`（`10`）
+- `data/benchmark_root/基本教育/跨学科教案生成/cross.yaml`（`10`）
+- `data/benchmark_root/基本教育/引导式讲题/config_guided_task.yaml`（`15`）
+
+`configs/basic_education.yaml` 负责把这些正式 benchmark 文件绑定到内部运行时：
+
+- `runtime_python: python`
+- `runtime_cli_module: elbench.basic_education_runtime.cli.main`
+- 被测模型和可选 judge 模型从 `configs/models.yaml` 获取
+
+执行：
 
 ```bash
-python -m unittest tests.test_registry_and_loaders tests.test_judges
+python scripts/run_benchmark.py run --model-id <你的模型ID> --module 基本教育 --run-id basic-education-run
 ```
 
-## 配置说明
+注意：`基本教育` 需要真实 API 模型配置。`mock.*` 仅用于单轮链路和 judge 路径的本地验证，不适用于内部多轮运行时。
+
+## 测试
+
+```bash
+python -m unittest tests.test_basic_education_bridge tests.test_registry_and_loaders tests.test_judges
+```
+
+`tests/` 是需要长期保留的正式目录，不是临时目录。
+
+## 配置面
 
 ### `configs/models.yaml`
 
-用于定义被测模型和 judge 模型。
-
-当前示例包括：
-
-- `mock.default`：被测 mock 模型
-- `mock.judge`：judge mock 模型
+定义被测模型和 judge 模型实例，包括 timeout、retry、rate limit 和 provider kwargs。
 
 ### `configs/providers.yaml`
 
-用于定义 provider adapter 与默认能力。
+定义 provider adapter 注册表和默认能力。
 
 当前内置：
 
@@ -241,38 +289,50 @@ python -m unittest tests.test_registry_and_loaders tests.test_judges
 
 ### `configs/judges.yaml`
 
-用于定义每个 task 的判分方式：
+定义 task 到判分方式的路由：
 
 - `rule`
 - `llm`
 
-以及对应的 judge template / judge model。
+### `configs/basic_education.yaml`
+
+定义内部 `basic_education_runtime` 的场景级执行配置。它是补充配置，不替代注册表。
 
 ## 如何扩展
 
-### 新增一个模型 provider
+### 新增 provider
 
-1. 在 `src/elbench/providers/` 下新增 adapter
-2. 在 `configs/providers.yaml` 注册 provider
-3. 在 `configs/models.yaml` 增加具体模型配置
+1. 在 `src/elbench/providers/` 下实现 adapter
+2. 在 `configs/providers.yaml` 注册
+3. 在 `configs/models.yaml` 中补具体模型
 
-### 新增一个 benchmark 文件
+### 新增 benchmark 文件
 
-1. 在 `configs/file_registry.yaml` 增加文件注册表项
-2. 在 `configs/field_mappings.yaml` 增加字段映射
-3. 如有需要，在 `configs/judges.yaml` 增加 judge 配置
-4. 复用或新增 judge 实现
+1. 把数据放到 `data/benchmark_root/`
+2. 在 `configs/file_registry.yaml` 注册
+3. 在 `configs/field_mappings.yaml` 补字段映射
+4. 在 `configs/judges.yaml` 补判分路由
+5. 增加或复用测试
 
 ### 新增未来模块
 
-框架已经通过 `configs/module_registry.yaml` 为 `通用模型` 和 `基本教育` 预留位置。后续新增时，正常路径应为：
+ELBench 已经为后续模块预留了空间。标准路径仍然是：
 
-1. 增加 file registry
-2. 增加 field mapping
-3. 增加 judge config
-4. 如有必要，增加任务级 judge 逻辑
+1. 增加模块注册
+2. 增加文件注册
+3. 增加字段映射
+4. 增加 judge 路由
+5. 只有配置表达不了时，才补任务级代码
 
 原则上不需要重写主 runner。
+
+## 团队维护
+
+团队维护规范统一见：
+
+- `docs/TEAM_MAINTENANCE_GUIDE.zh-CN.md`
+
+其中会明确每个保留目录的职责、哪些路径属于运行时产物、哪些内容不该提交进仓库。
 
 ## 当前状态
 
@@ -280,28 +340,22 @@ python -m unittest tests.test_registry_and_loaders tests.test_judges
 
 - 配置系统
 - 文件注册表
-- JSONL/XLSX loader
-- 统一 sample schema
+- JSONL / XLSX / YAML loader
+- 统一 sample/result schema
 - provider 抽象层
 - 并发 runner
 - 重试与断点续跑
-- 原始输出/判分结果/汇总/日志
+- 原始输出 / 判分结果 / 汇总 / 日志
 - 客观题规则 judge
-- 主观题 `LLM-as-a-Judge` 执行链路
+- 主观题 `LLM-as-a-Judge`
+- 基于内部运行时模块的基本教育桥接
 
-尚未最终定稿：
+仍然刻意保留为未定稿状态的部分：
 
-- 面向所有目标厂商的真实 API 接入
-- 生产级 judge prompt 与 rubric
-- 各主观子集更细的判分标准
-
-## 团队维护
-
-团队内部维护规范见：
-
-- `docs/TEAM_MAINTENANCE_GUIDE.zh-CN.md`
+- 面向所有厂商的生产级 adapter
+- 主观题 judge rubric 和 prompt 的最终版本
+- 当前已注册文件之外的未来模块完整接入
 
 ## License
 
-发布到 GitHub 前请补充你希望使用的许可证。
-
+发布前请补充你希望使用的许可证。

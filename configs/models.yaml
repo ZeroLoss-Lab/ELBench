@@ -15,22 +15,6 @@ models:
       max_concurrency: 100
     provider_kwargs:
       prefix: "[MOCK]"
-  - model_id: mock.echo
-    provider_name: mock
-    model_name: mock-echo
-    temperature: 0
-    max_tokens: 512
-    timeout: 10
-    retry:
-      max_attempts: 1
-      initial_delay_seconds: 0.5
-      max_delay_seconds: 1
-      backoff_multiplier: 1
-      jitter_ratio: 0
-    rate_limits:
-      max_concurrency: 100
-    provider_kwargs:
-      prefix: "[MOCK]"
   - model_id: mock.judge
     provider_name: mock
     model_name: mock-judge

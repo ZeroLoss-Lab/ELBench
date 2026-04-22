@@ -33,3 +33,5 @@ tasks:
     mode: rule
   aime26:
     mode: rule
+  gsm8k:
+    mode: rule

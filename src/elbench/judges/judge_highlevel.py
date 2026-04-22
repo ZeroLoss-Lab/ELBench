@@ -5,9 +5,9 @@ from typing import Any
 from elbench.judges.base import BaseJudge
 from elbench.schemas.evaluation import JudgeResult, ModelResponse, Sample
 from elbench.utils import (
-    extract_choice_letters,
     extract_json_object,
     extract_required_json_keys,
+    extract_single_choice_answer,
     normalize_text,
     parse_score_value,
     text_similarity,
@@ -28,10 +28,12 @@ class HighLevelJudge(BaseJudge):
         raise ValueError(f"Unsupported high-level task: {sample.task}")
 
     def _judge_omni(self, sample: Sample, response: ModelResponse) -> JudgeResult:
-        predicted = extract_choice_letters(response.text)
-        expected = extract_choice_letters((sample.reference or {}).get("answer"))
-        predicted_answer = predicted[0] if predicted else None
-        expected_answer = expected[0] if expected else None
+        predicted_answer = extract_single_choice_answer(
+            response.text,
+            list("ABCD"),
+            answer_prefixes=["答案", "最终答案", "ANSWER"],
+        )
+        expected_answer = self._expected_omni_answer(sample)
         passed = predicted_answer is not None and predicted_answer == expected_answer
         return JudgeResult(
             judge_name="highlevel_omni_exact_match",
@@ -44,6 +46,13 @@ class HighLevelJudge(BaseJudge):
                 "reasonableness": (sample.reference or {}).get("reasonableness"),
             },
         )
+
+    def _expected_omni_answer(self, sample: Sample) -> str | None:
+        answer = (sample.reference or {}).get("answer")
+        if answer in (None, ""):
+            return None
+        normalized = str(answer).strip().upper()
+        return normalized[0] if normalized else None
 
     def _judge_edu(self, sample: Sample, response: ModelResponse) -> JudgeResult:
         scene = sample.metadata.get("_scene")

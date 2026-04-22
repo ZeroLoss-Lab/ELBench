@@ -1,36 +1,43 @@
-﻿# ELBench
+# ELBench
 
 [![English](https://img.shields.io/badge/Language-English-blue.svg)](./README.md)
-[![简体中文](https://img.shields.io/badge/%E8%AF%AD%E8%A8%80-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-red.svg)](./README.zh-CN.md)
+[![简体中文](https://img.shields.io/badge/Language-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-red.svg)](./README.zh-CN.md)
 
-Config-driven benchmark framework for education-focused large language model evaluation.
+Config-driven benchmark framework for long-lived education LLM evaluation.
 
-ELBench is designed as a long-lived engineering system rather than a one-off script. It currently focuses on two benchmark modules:
+ELBench is built as an engineering system, not a one-off script. The current repository keeps four benchmark modules in one consistent framework:
 
 - `安全可信` / `Safety & Trustworthiness`
 - `高阶育人` / `Advanced Educational Capacity`
-
-It already reserves extension space for future modules:
-
-- `通用模型` / `General Models`
 - `基本教育` / `Basic Education`
+- `通用模型` / `General Models`
 
-## Overview
+The current registered benchmark inventory is:
 
-The framework is built around a few stable principles:
+- `安全可信`: 5 files
+- `高阶育人`: 2 files
+- `基本教育`: 4 YAML scenarios, `45` tasks total
+- `通用模型`: 5 single-turn benchmark files
 
-- Benchmark execution is driven by registry and configuration, not hardcoded file logic.
-- Model providers are abstracted behind a unified adapter layer.
-- Objective tasks use rule-based judging.
-- Subjective and open-ended tasks use `LLM-as-a-Judge`.
-- Outputs, logs, checkpoints, and summaries follow stable machine-readable formats.
-- Interrupted runs can resume from checkpoints.
+`基本教育` is integrated as a first-class ELBench module. Its benchmark data lives under `data/benchmark_root/基本教育/`, and its multi-turn execution is handled by the internal `basic_education_runtime` module at `src/elbench/basic_education_runtime/`.
 
-## Current Scope
+This internal runtime was adapted from the ELMES project, but it is now packaged and maintained as part of ELBench itself.
 
-### Implemented benchmark data support
+## Principles
 
-Current datasets wired into the framework:
+- Registry-driven loading instead of hardcoded file logic
+- Provider adapters instead of provider-specific branches in the runner
+- Rule-based judging for objective tasks
+- `LLM-as-a-Judge` for subjective and open-ended tasks
+- Stable machine-readable outputs, logs, checkpoints, and summaries
+- Resume support after interruption
+- Configurable concurrency with a default global cap of `100`
+
+## What Is Actually Wired Today
+
+### Registered benchmark files
+
+`configs/file_registry.yaml` currently resolves these files:
 
 - `安全拒答.jsonl`
 - `安全引导.jsonl`
@@ -39,13 +46,29 @@ Current datasets wired into the framework:
 - `adversarial_prompts.xlsx`
 - `高阶育人-edu.jsonl`
 - `高阶育人-omni.jsonl`
+- `knowledge.yaml`
+- `question.yaml`
+- `cross.yaml`
+- `config_guided_task.yaml`
+- `mmlu_pro_sampled.jsonl`
+- `ceval_sampled.jsonl`
+- `ifeval_sampled.jsonl`
+- `math_500_sampled.jsonl`
+- `aime24_sampled.jsonl`
+
+Files are only considered active benchmark inputs after they are registered. Data files not present in `configs/file_registry.yaml` are not part of the runnable benchmark.
 
 ### Current judge strategy
 
-Objective tasks use rule-based or reference-based judging:
+Objective tasks use rule or reference matching:
 
-- `SATAs.xlsx`: exact set match
-- `高阶育人-omni.jsonl`: exact answer match
+- `SATAs.xlsx`
+- `高阶育人-omni.jsonl`
+- `mmlu_pro_sampled.jsonl`
+- `ceval_sampled.jsonl`
+- `ifeval_sampled.jsonl`
+- `math_500_sampled.jsonl`
+- `aime24_sampled.jsonl`
 
 Subjective or open-ended tasks use `LLM-as-a-Judge`:
 
@@ -55,16 +78,17 @@ Subjective or open-ended tasks use `LLM-as-a-Judge`:
 - `adversarial_prompts.xlsx`
 - `高阶育人-edu.jsonl`
 
-At this stage, external API integration for judge models and evaluated models is still intentionally left pluggable. The repository includes a `mock` provider so the full pipeline can be tested locally without external API access.
+The repository still treats external provider integration as pluggable. `mock.default` and `mock.judge` are included so the full pipeline can be validated locally without real API access.
 
-## Repository Structure
+## Repository Layout
 
 ```text
 .
 ├── configs/
 │   ├── app.yaml
-│   ├── file_registry.yaml
+│   ├── basic_education.yaml
 │   ├── field_mappings.yaml
+│   ├── file_registry.yaml
 │   ├── judges.yaml
 │   ├── models.yaml
 │   ├── module_registry.yaml
@@ -72,12 +96,16 @@ At this stage, external API integration for judge models and evaluated models is
 ├── data/
 │   └── benchmark_root/
 │       ├── 安全可信/
-│       └── 高阶育人/
-├── outputs/
+│       ├── 高阶育人/
+│       ├── 基本教育/
+│       └── 通用/
+├── docs/
+│   └── TEAM_MAINTENANCE_GUIDE.zh-CN.md
 ├── scripts/
 │   └── run_benchmark.py
 ├── src/
 │   └── elbench/
+│       ├── basic_education_runtime/
 │       ├── cli.py
 │       ├── config/
 │       ├── execution/
@@ -92,19 +120,19 @@ At this stage, external API integration for judge models and evaluated models is
 └── tests/
 ```
 
-## Core Design
+`scripts/run_benchmark.py` is intentionally a thin entrypoint. The actual benchmark logic lives under `src/elbench/`.
 
-### 1. Registry-driven data loading
+## Core Architecture
 
-The benchmark does not rely on ad hoc script logic for specific files.
+### Registry and schema adaptation
 
-- `configs/file_registry.yaml` maps benchmark files to module, subset, task, and loader.
-- `configs/field_mappings.yaml` maps raw dataset fields into the unified internal sample schema.
-- JSONL and XLSX loaders both normalize records into one internal `Sample` format.
+- `configs/file_registry.yaml` maps files to module, subset, task, loader, and canonical name.
+- `configs/field_mappings.yaml` maps raw dataset fields into ELBench's unified internal schema.
+- JSONL, XLSX, and basic-education YAML inputs are normalized into the same `Sample` structure.
 
-### 2. Unified sample schema
+### Unified sample/result schema
 
-Every loaded record is normalized into a shared structure containing:
+Loaded records are normalized into a stable schema with fields such as:
 
 - `sample_id`
 - `source_file`
@@ -116,59 +144,8 @@ Every loaded record is normalized into a shared structure containing:
 - `reference`
 - `metadata`
 
-### 3. Provider abstraction
+Execution output includes:
 
-The main execution flow does not depend on any specific API style.
-
-- `ModelClient` is the abstract base interface.
-- Providers live under `src/elbench/providers/`.
-- New providers should be added through config plus a provider adapter, without changing the runner.
-
-### 4. Judge abstraction
-
-The framework separates objective and subjective evaluation:
-
-- Rule judges for objective tasks
-- `LLM-as-a-Judge` for subjective tasks
-
-Judge behavior is configured in `configs/judges.yaml`.
-
-### 5. Concurrency, resilience, and observability
-
-The runner supports:
-
-- configurable global concurrency
-- provider/model-level concurrency limits
-- retry with exponential backoff
-- failure logging
-- retry logging
-- checkpoint-based resume
-- raw response persistence
-- judged result persistence
-- summary generation
-
-Default max concurrency is `100`.
-
-## Output Layout
-
-```text
-outputs/
-├── raw_responses/
-├── judged_results/
-├── summaries/
-└── logs/
-```
-
-Each evaluated sample records fields such as:
-
-- `sample_id`
-- `source_file`
-- `module`
-- `subset`
-- `task`
-- `dimension`
-- `prompt`
-- `reference`
 - `provider_name`
 - `model_id`
 - `model_name`
@@ -180,59 +157,130 @@ Each evaluated sample records fields such as:
 - `latency_ms`
 - `retry_count`
 - `timestamp`
-- `metadata`
 
-## Quick Start
+### Provider abstraction
 
-### 1. Requirements
+- `ModelClient` is the common interface for model execution.
+- Provider-specific API differences are isolated under `src/elbench/providers/`.
+- The main runner does not care whether a model comes from OpenAI, Anthropic, Gemini, or another vendor once the adapter exists.
 
-- Python `>= 3.11`
+### Execution, concurrency, and recovery
 
-### 2. Install
+The runner supports:
+
+- global concurrency control
+- provider/model-level concurrency limits
+- retry with exponential backoff
+- failure logging
+- checkpoint-based resume
+- raw-response persistence
+- judged-result persistence
+- summary generation
+
+Default global max concurrency is `100` in `configs/app.yaml`.
+
+### Basic Education runtime
+
+`基本教育` differs from the other modules only in execution style, not in data governance:
+
+- benchmark data stays under `data/benchmark_root/基本教育/`
+- file discovery still goes through `configs/file_registry.yaml`
+- runtime execution is handled by `src/elbench/execution/basic_education.py`
+- the internal runtime implementation lives under `src/elbench/basic_education_runtime/`
+
+## Output Layout
+
+```text
+outputs/
+├── raw_responses/
+├── judged_results/
+├── summaries/
+└── logs/
+```
+
+These directories are runtime artifacts and are intentionally ignored by Git.
+
+## Installation
+
+### Core framework
 
 ```bash
 pip install -e .
 ```
 
-### 3. Inspect resolved benchmark files
+### With Basic Education runtime support
+
+```bash
+pip install -e .[basic-education]
+```
+
+### Contributor setup
+
+```bash
+pip install -e .[basic-education,dev]
+```
+
+## Quick Start
+
+### Inspect registered benchmark files
 
 ```bash
 python scripts/run_benchmark.py inspect
 ```
 
-### 4. Run a local smoke test with the mock provider
+### Run a local smoke test
 
 ```bash
-python scripts/run_benchmark.py run --model-id mock.default --max-samples 3 --run-id smoke-test
+python scripts/run_benchmark.py run --model-id mock.default --max-samples 3 --run-id smoke-test --no-resume
 ```
 
-Or, after editable install:
+Or after editable install:
 
 ```bash
 elbench inspect
-elbench run --model-id mock.default --max-samples 3 --run-id smoke-test
+elbench run --model-id mock.default --max-samples 3 --run-id smoke-test --no-resume
 ```
 
-### 5. Run unit tests
+### Run Basic Education
+
+The current built-in scenarios are:
+
+- `data/benchmark_root/基本教育/知识点讲解/knowledge.yaml` (`10`)
+- `data/benchmark_root/基本教育/情景化出题/question.yaml` (`10`)
+- `data/benchmark_root/基本教育/跨学科教案生成/cross.yaml` (`10`)
+- `data/benchmark_root/基本教育/引导式讲题/config_guided_task.yaml` (`15`)
+
+`configs/basic_education.yaml` binds these official benchmark files to the internal runtime:
+
+- `runtime_python: python`
+- `runtime_cli_module: elbench.basic_education_runtime.cli.main`
+- target model and optional judge model come from `configs/models.yaml`
+
+Run:
 
 ```bash
-python -m unittest tests.test_registry_and_loaders tests.test_judges
+python scripts/run_benchmark.py run --model-id <your_model_id> --module 基本教育 --run-id basic-education-run
 ```
 
-## Configuration Guide
+`基本教育` requires a real API-backed model config. `mock.*` models are for single-turn pipeline smoke checks and judge-path testing, not for the internal multi-turn runtime.
+
+## Tests
+
+```bash
+python -m unittest tests.test_basic_education_bridge tests.test_registry_and_loaders tests.test_judges
+```
+
+The `tests/` directory is part of the maintained framework and should stay in the repository.
+
+## Configuration Surface
 
 ### `configs/models.yaml`
 
-Defines evaluated models and judge models.
-
-Examples:
-
-- `mock.default`: mock evaluated model
-- `mock.judge`: mock judge model
+Concrete evaluated-model and judge-model instances, including timeout, retry, rate limits, and provider kwargs.
 
 ### `configs/providers.yaml`
 
-Defines provider adapters and default capabilities.
+Provider adapter registry plus default provider capabilities.
 
 Current built-in adapters:
 
@@ -241,38 +289,50 @@ Current built-in adapters:
 
 ### `configs/judges.yaml`
 
-Defines whether a task uses:
+Task-to-judge routing:
 
 - `rule`
 - `llm`
 
-and which judge template / judge model to use.
+### `configs/basic_education.yaml`
 
-## Extending the Framework
+Scenario-level runtime settings for the internal basic education runtime. This file does not replace the registry; it complements it.
 
-### Add a new model provider
+## Extending ELBench
 
-1. Add a provider adapter under `src/elbench/providers/`
-2. Register it in `configs/providers.yaml`
-3. Add concrete model entries in `configs/models.yaml`
+### Add a new provider
+
+1. Implement an adapter under `src/elbench/providers/`.
+2. Register it in `configs/providers.yaml`.
+3. Add concrete models in `configs/models.yaml`.
 
 ### Add a new benchmark file
 
-1. Add a file registry entry in `configs/file_registry.yaml`
-2. Add field mapping in `configs/field_mappings.yaml`
-3. Add judge routing config in `configs/judges.yaml` if needed
-4. Implement or reuse a judge
+1. Put the data file under `data/benchmark_root/`.
+2. Register it in `configs/file_registry.yaml`.
+3. Add field mappings in `configs/field_mappings.yaml`.
+4. Route judging in `configs/judges.yaml`.
+5. Add or reuse tests.
 
-### Add a future benchmark module
+### Add a future module
 
-The framework already reserves module space through `configs/module_registry.yaml`. To add `通用模型` or `基本教育`, the intended path is:
+ELBench already reserves space for further modules. The intended path remains:
 
-1. add file registry entries
-2. add field mappings
-3. add judge configs
-4. optionally add task-specific judge logic
+1. add module registration
+2. add file registration
+3. add field mappings
+4. add judge routing
+5. add task-specific logic only if configuration cannot express the behavior
 
-No main runner rewrite should be required.
+No main-runner rewrite should be required.
+
+## Maintenance
+
+The canonical team maintenance guide is:
+
+- `docs/TEAM_MAINTENANCE_GUIDE.zh-CN.md`
+
+That document explains what each maintained directory is for, which paths are runtime-only, and what should or should not be committed.
 
 ## Status
 
@@ -280,22 +340,22 @@ Implemented:
 
 - config system
 - file registry
-- JSONL/XLSX loaders
-- unified sample schema
+- JSONL/XLSX/YAML loaders
+- unified sample/result schema
 - provider abstraction
 - concurrent runner
 - retries and checkpoint resume
 - raw/judged/summary/log outputs
 - rule judges for objective tasks
-- LLM-as-a-Judge execution path for subjective tasks
+- `LLM-as-a-Judge` execution path for subjective tasks
+- built-in basic-education bridge on top of the internal runtime module
 
-Not finalized yet:
+Still intentionally unfinished:
 
-- real external provider integration for all target vendors
-- production judge prompts and rubrics
-- full task-specific rubric refinement for all subjective subsets
+- production-grade adapters for every external vendor
+- finalized subjective judge rubrics and prompts
+- complete future-module integration beyond the current registered files
 
 ## License
 
 Add your preferred license before publishing.
-

@@ -1,176 +1,187 @@
 # ELBench 团队维护指南
 
-本指南面向后续维护 `ELBench` 的团队成员，目标不是解释“这个项目做什么”，而是规定“后续应该如何安全、统一地维护这个项目”。  
-本指南尤其适用于使用大模型进行 `vibe coding` 的协作场景，避免不同成员各自按个人习惯改动，导致目录、配置、judge、输出结构和主流程逐渐失控。
+本指南面向 ELBench 团队维护者，目标是把“什么应该保留、什么应该删、什么地方负责什么”说清楚，减少仓库熵，保证多人协作和大模型协作时都不会把项目越改越乱。
 
-## 1. 维护目标
+## 1. 总原则
 
-团队维护 ELBench 时，必须优先保证以下几点：
+- 配置优先。新增数据、模型、judge 时，优先改注册表和配置，不直接侵入主流程。
+- 边界清晰。加载、执行、判分、持久化、汇总必须分层，不要混写。
+- 输出稳定。`outputs/` 结构、结果字段、日志字段不能随意改。
+- 数据归位。正式 benchmark 数据统一放在 `data/benchmark_root/` 下，不能散落到根目录或外挂目录。
+- 数据集不删。任何 benchmark 数据集文件都不得因为“暂未接入”“暂未注册”“暂时无测试”而删除；未接入的数据集只能保留并标记为待接入。
+- 轻仓库。缓存、临时分析文档、历史脚本、系统垃圾文件不要留在主仓库。
 
-1. 配置驱动，不把数据集、模型、judge、字段名写死在主流程里。
-2. 主流程稳定，新增数据、模型、judge 时尽量不改 runner 主骨架。
-3. 输出结构稳定，不能因为某次重构随意改结果字段名和目录层级。
-4. 可恢复、可复现，中断后能断点续跑，重复实验输出口径一致。
-5. 代码边界清晰，加载、调用、判分、汇总、日志不要混写。
+一句话：**优先走“数据目录 -> 注册表 -> 字段映射 -> judge 路由 -> 边界层代码 -> 测试验证”这条路径。**
 
-一句话原则：**新增能力优先走注册表、配置和适配层，不直接入侵主流程。**
+## 2. 当前清理与重构结论
 
-## 2. 维护红线
+这次整理后，以下判断作为当前团队共识：
 
-以下做法默认禁止：
+| 路径 | 结论 | 原因 |
+|---|---|---|
+| `tests/` | 保留 | 这是正式回归保障，不是临时目录 |
+| `src/elbench/basic_education_runtime/` | 保留 | `基本教育` 多轮桥接的内置运行时 |
+| `third_party/` | 删除 | 基本教育运行时已内收进项目内部，不再作为外挂目录存在 |
+| `run.sh` / `setup.sh` | 删除 | 过时、未被文档和主流程使用 |
+| `docs/*analysis*.md` | 删除 | 历史分析稿，且已过时 |
+| `docs/sample_command.md` | 删除 | 使用了已废弃的模型配置 |
+| `edu_eval_spec_for_codex.md` | 删除 | 早期实现规格，已被当前代码和 README 替代 |
+| `.DS_Store`、`pytest-cache-files-*`、`__pycache__`、`outputs/` | 不提交，按需本地删除 | 运行时或系统垃圾文件 |
 
-- 禁止在 `runner.py` 里直接写死某个数据文件的字段名。
-- 禁止在主流程里用 `if model_name == ...` 处理某个模型特例。
-- 禁止把某个 provider 的 API 参数命名泄漏到通用执行层。
-- 禁止为了“先跑通”把 judge 逻辑散落到 loader、provider 或 summary 里。
-- 禁止修改已有输出目录结构，例如把 `outputs/raw_responses/` 改成别的层级。
-- 禁止直接改原始 benchmark 数据文件内容，除非是数据本身确有错误并已达成团队共识。
-- 禁止把 `outputs/`、缓存文件、临时实验结果提交到 git。
+额外说明：
 
-## 3. 标准维护流程
+- ELBench 当前只有 `src/elbench/` 是项目源码根。
+- `基本教育` 的内部运行时模块位于 `src/elbench/basic_education_runtime/`。
+- 这个内部运行时来源于 ELMES，但现在已经按 ELBench 自有模块维护，不再以外挂目录的形式存在。
 
-团队成员做任何改动时，建议统一按以下顺序操作：
+## 3. 顶层目录/文件职责表
 
-1. 先看 `README.md` 和本指南，确认当前架构约束。
-2. 明确本次变更属于哪一类：
-   - 新增评测数据
-   - 调整字段映射
-   - 新增模型/provider
-   - 调整 judge
-   - 调整执行/并发/日志
-   - 改 summary 或输出格式
-3. 优先检查是否可以只改配置。
-4. 如果必须改代码，优先改最靠边界的层，不直接改主流程。
-5. 改动后至少执行一次单测和一次 smoke run。
-6. 提交前确认输出格式没有被意外破坏。
-
-## 4. 目录与文件职责表
-
-下表是后续维护最常用的定位表。看到需求后，先用这张表确定应该改哪里。
-
-| 路径 | 作用 | 什么时候改 | 注意事项 |
+| 路径 | 是否应长期保留 | 作用 | 什么时候改 |
 |---|---|---|---|
-| `README.md` | 英文默认首页说明 | 项目能力、结构、使用方法变化时 | 保持对外描述准确，不夸大未完成能力 |
-| `README.zh-CN.md` | 中文说明 | 与英文 README 同步更新时 | 与英文版保持口径一致 |
-| `docs/TEAM_MAINTENANCE_GUIDE.zh-CN.md` | 团队维护规范 | 团队流程、约束、协作方式变化时 | 属于团队内规范文档 |
-| `pyproject.toml` | 包名、依赖、命令入口 | 增加依赖、改 CLI 命令、改包名时 | 变更后要重新验证 `pip install -e .` |
-| `.gitignore` | 忽略规则 | 新增缓存目录、实验输出目录时 | 不要把数据目录误忽略 |
-| `configs/app.yaml` | 全局项目配置 | 改 data root、output root、默认并发、默认 retry 时 | 是全局默认值，不放 task 特化逻辑 |
-| `configs/module_registry.yaml` | 模块注册表 | 新增一级 benchmark 模块时 | 模块名应稳定，避免频繁改名 |
-| `configs/file_registry.yaml` | 文件注册表 | 新增 benchmark 文件、调整文件归属时 | 文件到 module/subset/task 的映射在这里维护 |
-| `configs/field_mappings.yaml` | 字段映射配置 | 原始数据 schema 变化，或新增数据文件时 | 原始字段变化优先改这里，不改主流程 |
-| `configs/providers.yaml` | provider 注册表 | 新增 provider adapter 时 | 描述 provider 能力和默认限制，不写具体模型实例 |
-| `configs/models.yaml` | 模型注册表 | 新增被测模型或 judge 模型时 | 单模型的 timeout/retry/rate limit 在这里配 |
-| `configs/judges.yaml` | judge 路由配置 | 调整 task 用 rule 还是 llm judge 时 | task 到 judge 策略的唯一入口 |
-| `data/benchmark_root/` | benchmark 数据根目录 | 新增或整理数据文件时 | 必须按模块和子集分类，不要散落在根目录 |
-| `data/benchmark_root/安全可信/` | 安全可信模块数据 | 安全可信数据更新时 | 目录名与注册表保持一致 |
-| `data/benchmark_root/高阶育人/` | 高阶育人模块数据 | 高阶育人数据更新时 | `edu/` 与 `omni/` 子目录要稳定 |
-| `scripts/run_benchmark.py` | 脚本入口 | 很少需要改 | 通常只作为入口代理，不放业务逻辑 |
-| `src/elbench/cli.py` | CLI 参数入口 | 新增命令或参数时 | CLI 只做参数转发，不写业务实现 |
-| `src/elbench/config/loader.py` | 配置加载器 | 新增配置文件或配置 schema 时 | 所有 yaml 配置统一从这里装载 |
-| `src/elbench/schemas/config.py` | 配置 schema | 新配置项、新注册表结构时 | 这里定义配置的数据契约 |
-| `src/elbench/schemas/evaluation.py` | Sample/Result/Judge schema | 改内部 sample/result 结构时 | 输出字段改动会影响全链路，慎改 |
-| `src/elbench/registry/file_registry.py` | 文件解析与路径定位 | 文件发现逻辑变化时 | 不要把业务字段解析写进 registry |
-| `src/elbench/loaders/base.py` | loader 抽象基类 | 一般不常改 | 改这里通常意味着 loader 接口变更 |
-| `src/elbench/loaders/jsonl_loader.py` | JSONL 解析 | JSONL 读取策略变化时 | 只负责解析，不负责 task 业务 |
-| `src/elbench/loaders/xlsx_loader.py` | XLSX 解析 | Excel 读取逻辑变化时 | 只负责表格读取 |
-| `src/elbench/loaders/normalizer.py` | 统一 sample 归一化 | sample 构造规则变化时 | 字段映射最终在这里落地 |
-| `src/elbench/loaders/resolvers.py` | 特殊字段解析 | `dimension` 等派生字段需要特化时 | 优先在这里扩展 resolver |
-| `src/elbench/providers/base.py` | 模型客户端抽象 | provider 接口设计调整时 | 主流程依赖这里的统一接口 |
-| `src/elbench/providers/factory.py` | provider 工厂 | 新增 provider class 时 | 新 provider 要在这里注册 |
-| `src/elbench/providers/openai_compatible.py` | OpenAI 兼容 provider | 新增 OpenAI-compatible 模型时 | 封装 provider 差异，不污染 runner |
-| `src/elbench/providers/mock.py` | mock provider | 本地 smoke、judge 回放、占位验证时 | 不要把 mock 逻辑扩展成正式 provider 主逻辑 |
-| `src/elbench/execution/runner.py` | 评测主执行器 | 执行调度、结果落盘、judge 串联变更时 | 尽量少改，是主骨架文件 |
-| `src/elbench/execution/rate_limit.py` | 限流器 | 并发、QPS、RPM、TPM 策略变化时 | 改动会影响所有 provider |
-| `src/elbench/execution/retry.py` | 重试与退避 | retry 规则变化时 | 避免把 task 特例写进这里 |
-| `src/elbench/judges/router.py` | judge 路由器 | task 到 rule/llm judge 的映射变化时 | judge 分流统一在这里处理 |
-| `src/elbench/judges/base.py` | judge 抽象基类 | judge 接口变化时 | 所有 judge 都依赖这个接口 |
-| `src/elbench/judges/llm_judge.py` | LLM-as-a-Judge 执行器 | 主观题 judge 链路升级时 | judge model 与被测模型要保持解耦 |
-| `src/elbench/judges/llm_prompting.py` | judge prompt 模板生成 | 调整主观题 rubric 时 | 主观题 prompt 优化优先改这里 |
-| `src/elbench/judges/judge_safety.py` | 安全可信 judge | 调整安全可信判分规则时 | 当前既有 rule judge，也有 llm judge 路由 |
-| `src/elbench/judges/judge_teaching_harm.py` | 教学安全 judge | 调整 SATAs / adversarial 规则判分时 | 客观题优先保持规则判分 |
-| `src/elbench/judges/judge_highlevel.py` | 高阶育人 judge | 调整 `highlevel_edu` / `highlevel_omni` 判分时 | `omni` 是客观题，`edu` 偏主观 |
-| `src/elbench/judges/placeholder.py` | 占位 judge | 框架预留、尚未实现的新 task 时 | 不能长期作为正式 judge 使用 |
-| `src/elbench/persistence/writers.py` | 输出文件写入器 | 调整结果落盘格式时 | 不要随意改输出目录层级 |
-| `src/elbench/persistence/checkpoint.py` | checkpoint 持久化 | 调整断点续跑策略时 | 与 resume 行为强相关 |
-| `src/elbench/persistence/logging.py` | 日志初始化 | 调整日志格式和级别时 | 要保证日志可读且稳定 |
-| `src/elbench/summary/aggregator.py` | 汇总统计 | 需要新增 summary 维度时 | 尽量只在 summary 层做聚合，不回写主结果 |
-| `src/elbench/utils/parsing.py` | 通用解析工具 | 文本提取、JSON 提取、答案解析扩展时 | 只放通用工具，不放 task 逻辑 |
-| `tests/test_registry_and_loaders.py` | 注册表和 loader smoke test | 新增 benchmark 文件或 loader 逻辑时 | 新数据接入后应补这类测试 |
-| `tests/test_judges.py` | judge smoke test | 新增 judge 或改 judge 行为时 | judge 改动必须补测试 |
+| `README.md` | 保留 | 英文默认首页，对外说明项目能力、结构、安装与运行方法 | 仓库能力、结构、安装方式变化时 |
+| `README.zh-CN.md` | 保留 | 中文说明 | 与英文 README 同步更新时 |
+| `docs/TEAM_MAINTENANCE_GUIDE.zh-CN.md` | 保留 | 团队内部维护规范和目录职责表 | 维护规范变化时 |
+| `pyproject.toml` | 保留 | 包定义、依赖、可选 extras、CLI 入口 | 增加依赖、调整安装方式时 |
+| `.gitignore` | 保留 | 忽略缓存、输出和系统垃圾文件 | 新增运行时垃圾目录时 |
+| `configs/` | 保留 | 全部配置驱动入口 | 新增模块、文件、模型、judge、并发规则时 |
+| `data/benchmark_root/` | 保留 | 正式 benchmark 数据根目录 | 新增、整理 benchmark 数据时 |
+| `docs/` | 保留，但只留活文档 | 团队文档目录，不放一次性分析稿 | 文档新增或重写时 |
+| `scripts/run_benchmark.py` | 保留 | 运行入口薄封装 | 很少改；只改入口行为 |
+| `src/elbench/` | 保留 | ELBench 正式源码 | 根据职责分层修改 |
+| `tests/` | 保留 | 回归测试与 smoke test | 新增/修改功能后同步补测试 |
+| `outputs/` | 不入库 | 运行产物目录 | 本地跑实验时自动生成 |
 
-## 5. 后续新增评测数据的标准流程
+## 4. `configs/` 职责表
 
-这是最常见的维护动作。必须按顺序做。
+| 路径 | 作用 | 注意事项 |
+|---|---|---|
+| `configs/app.yaml` | 全局默认配置，如 data root、output root、默认并发、默认 retry | 默认最大并发当前为 `100` |
+| `configs/module_registry.yaml` | 模块注册表 | 这里只定义模块，不定义文件 |
+| `configs/file_registry.yaml` | benchmark 文件注册表 | 文件是否“正式接入”以这里为准 |
+| `configs/field_mappings.yaml` | 原始字段到统一 schema 的映射 | 字段变了优先改这里 |
+| `configs/providers.yaml` | provider 注册与默认能力 | 不放具体模型实例 |
+| `configs/models.yaml` | 被测模型和 judge 模型实例配置 | 单模型超时、限流、provider kwargs 在这里配 |
+| `configs/judges.yaml` | task 到 rule / llm judge 的路由 | judge 路由唯一入口 |
+| `configs/basic_education.yaml` | 基本教育桥接执行配置 | 只管执行，不替代 benchmark 数据注册 |
 
-### 场景 A：新增一个文件，但仍属于现有模块
+## 5. `src/elbench/` 代码职责表
 
-例如新增一个 `安全可信` 子集文件。
+| 路径 | 作用 | 什么时候改 |
+|---|---|---|
+| `src/elbench/cli.py` | CLI 参数入口 | 新增命令行参数时 |
+| `src/elbench/config/loader.py` | 配置加载 | 新增配置文件或 schema 时 |
+| `src/elbench/schemas/config.py` | 配置 schema | 配置结构变更时 |
+| `src/elbench/schemas/evaluation.py` | Sample / Result / Judge schema | 改输出契约时，需极慎重 |
+| `src/elbench/registry/file_registry.py` | 文件发现与解析 | 文件定位逻辑变化时 |
+| `src/elbench/loaders/base.py` | loader 抽象基类 | loader 接口变化时 |
+| `src/elbench/loaders/jsonl_loader.py` | JSONL 加载 | JSONL 读取逻辑变更时 |
+| `src/elbench/loaders/xlsx_loader.py` | XLSX 加载 | Excel 读取逻辑变更时 |
+| `src/elbench/loaders/basic_education_yaml_loader.py` | 基本教育 YAML 样本加载 | 基本教育数据模板解析变化时 |
+| `src/elbench/loaders/normalizer.py` | 统一 sample 归一化 | Sample 构造规则变化时 |
+| `src/elbench/loaders/resolvers.py` | 派生字段解析，如 `dimension` | 某些字段需要特殊派生逻辑时 |
+| `src/elbench/providers/base.py` | 模型客户端统一接口 | provider 抽象变化时 |
+| `src/elbench/providers/factory.py` | provider 工厂 | 新增 provider 类时 |
+| `src/elbench/providers/openai_compatible.py` | OpenAI 兼容 provider | 接 OpenAI-compatible 厂商时 |
+| `src/elbench/providers/mock.py` | 本地 mock provider | 本地 smoke 或 judge 回归时 |
+| `src/elbench/execution/runner.py` | 主执行器 | 执行调度变更时，慎改 |
+| `src/elbench/execution/basic_education.py` | 基本教育多轮桥接 | 调整内部运行时调用、结果导入、恢复逻辑时 |
+| `src/elbench/execution/rate_limit.py` | 并发与限流控制 | 限流策略变化时 |
+| `src/elbench/execution/retry.py` | 重试与退避 | 重试策略变化时 |
+| `src/elbench/judges/router.py` | judge 路由 | task 到 judge 映射变化时 |
+| `src/elbench/judges/base.py` | judge 抽象基类 | judge 接口变化时 |
+| `src/elbench/judges/llm_judge.py` | `LLM-as-a-Judge` 执行器 | 主观题 judge 链路升级时 |
+| `src/elbench/judges/llm_prompting.py` | judge prompt 模板 | rubric 和 judge prompt 调整时 |
+| `src/elbench/judges/judge_safety.py` | 安全可信相关判分 | 安全任务判分逻辑变化时 |
+| `src/elbench/judges/judge_teaching_harm.py` | 教学安全客观题判分 | SATAs 等规则判分变化时 |
+| `src/elbench/judges/judge_highlevel.py` | 高阶育人判分 | `highlevel_edu` / `highlevel_omni` 变化时 |
+| `src/elbench/judges/judge_mmlu.py` | MMLU-Pro / C-Eval 判分 | 通用客观题扩展时 |
+| `src/elbench/judges/judge_ifeval.py` | IFEval 判分 | 指令遵循判分变化时 |
+| `src/elbench/judges/judge_math.py` | Math-500 / AIME 判分 | 数学题判分变化时 |
+| `src/elbench/basic_education_runtime/` | 基本教育内部多轮运行时 | 修改运行时模型编排、导出、评估逻辑时 |
+| `src/elbench/persistence/writers.py` | 结果写盘 | 输出结构变化时 |
+| `src/elbench/persistence/checkpoint.py` | checkpoint 持久化 | 断点续跑行为变化时 |
+| `src/elbench/persistence/logging.py` | 日志初始化 | 日志格式或级别调整时 |
+| `src/elbench/summary/aggregator.py` | 汇总统计 | 新增 summary 维度时 |
+| `src/elbench/utils/parsing.py` | 通用解析工具 | 文本/答案解析工具扩展时 |
 
-操作顺序：
+## 6. `tests/` 职责表
 
-1. 将原始数据放入 `data/benchmark_root/` 下正确的模块目录。
-2. 在 `configs/file_registry.yaml` 新增一条文件注册表项。
-3. 在 `configs/field_mappings.yaml` 新增字段映射。
-4. 如果需要新 task，在 `configs/judges.yaml` 增加 judge 配置。
-5. 如果该数据的 `dimension` 需要特殊解析，在 `src/elbench/loaders/resolvers.py` 增加 resolver。
-6. 如果是客观题，优先补 rule judge；如果是主观题，优先补 llm judge template 或 task-specific judge。
-7. 在 `tests/` 增加最少一条 smoke test。
-8. 运行：
-   - `python scripts/run_benchmark.py inspect`
-   - `python -m unittest tests.test_registry_and_loaders tests.test_judges`
+| 路径 | 作用 | 什么时候必须更新 |
+|---|---|---|
+| `tests/test_registry_and_loaders.py` | 校验注册表是否能解析当前 bench 文件，以及 loader 是否能产出统一 sample | 新增 benchmark 文件、调整 loader、改 field mapping 后 |
+| `tests/test_judges.py` | 校验各类客观题和 `LLM-as-a-Judge` 路径的基本行为 | 改 judge、改 prompt 解析、改客观题判分逻辑后 |
+| `tests/test_basic_education_bridge.py` | 校验基本教育 45 题配置、场景任务计数和内部运行时结果导入辅助逻辑 | 改基本教育配置或桥接实现后 |
+
+## 7. `src/elbench/basic_education_runtime/` 保留范围
+
+这个目录是 `基本教育` 的内置运行时，不是独立仓库。
+
+当前应保留：
+
+- `src/elbench/basic_education_runtime/` 下的源码
+- `src/elbench/basic_education_runtime/assets/fonts/sarasa-mono-sc-regular.ttf`
+
+当前不应再出现：
+
+- 外挂式旧 third-party 运行时目录
+- 与 ELBench 无关的上游示例、CI、锁文件
+- 单独的外部项目说明口径
+
+## 8. 新增评测数据的标准流程
+
+在任何“新增/待接入/重构”场景下，都适用一条硬规则：
+
+- 不要删除任何 benchmark 数据集文件。未接入的数据集要保留在 `data/benchmark_root/` 下，并通过文档或注册状态明确标记为“待接入”。
+
+### 场景 A：新增文件，但仍属于现有模块
+
+1. 把数据放到 `data/benchmark_root/` 下正确的模块目录。
+2. 在 `configs/file_registry.yaml` 注册文件。
+3. 在 `configs/field_mappings.yaml` 增加字段映射。
+4. 在 `configs/judges.yaml` 增加或调整 judge 路由。
+5. 如需派生字段逻辑，在 `src/elbench/loaders/resolvers.py` 扩展。
+6. 客观题优先规则判分，主观题再走 `LLM-as-a-Judge`。
+7. 补至少一条测试。
+8. 跑 `inspect` 和单测。
 
 ### 场景 B：新增一个全新模块
 
-例如未来新增 `通用模型` 或 `基本教育`。
+1. 在 `configs/module_registry.yaml` 注册模块。
+2. 在 `data/benchmark_root/` 下建立正式目录。
+3. 为该模块每个文件补 `file_registry.yaml`。
+4. 为该模块每个文件补 `field_mappings.yaml`。
+5. 为该模块 task 补 `judges.yaml`。
+6. 只有配置表达不了时，才新增 loader、judge 或执行逻辑。
 
-操作顺序：
+补充：`基本教育` 不是数据组织例外。它的数据也必须放在 `data/benchmark_root/基本教育/`，只是运行时要通过 `src/elbench/execution/basic_education.py` 调用内部 `basic_education_runtime`。
 
-1. 在 `configs/module_registry.yaml` 中启用或新增模块。
-2. 在 `data/benchmark_root/` 下建立规范目录。
-3. 为每个文件补 `file_registry.yaml`。
-4. 为每个文件补 `field_mappings.yaml`。
-5. 为该模块的 task 补 `judges.yaml` 路由。
-6. 如需新增 judge，实现 judge 类或 llm judge template。
-7. 只在必要时改 `runner.py`，优先不动主流程。
+## 9. 什么时候优先改配置，什么时候改代码
 
-## 6. 调整已有评测脚本的规范
-
-### 可以直接改配置的情况
-
-以下场景优先改配置，不要改 Python 代码：
+### 优先改配置
 
 - 文件路径变化
-- 文件归属模块/子集变化
+- 文件归属模块或子集变化
 - 原始字段名变化
-- 某个 task 要从 `rule` 切到 `llm`
-- 模型参数、timeout、retry、限流参数变化
+- task 从 `rule` 切到 `llm`
+- 模型 timeout / retry / rate limit 变化
 
-### 必须改代码的情况
+### 必须改代码
 
-只有在以下场景才应改 Python 代码：
+- 数据格式不是现有 loader 能覆盖的格式
+- 字段派生逻辑无法由映射表达
+- 新 provider API 形态与现有 adapter 不兼容
+- judge 逻辑本身是新的
+- summary 要新增新的聚合方式
 
-- 新数据格式不是 JSONL/XLSX，必须新增 loader
-- 字段解析逻辑不能靠映射表达，必须新增 resolver
-- provider API 形态不同，必须新增 adapter
-- judge 逻辑是全新的，配置无法表达
-- summary 需要新增全新聚合逻辑
+### 修改 `runner.py` 的前提
 
-### 改主流程的要求
+只有当配置、adapter、judge、loader 都不能表达需求时，才允许改 `src/elbench/execution/runner.py`。改完必须补测试并跑 smoke run。
 
-如果必须改 `src/elbench/execution/runner.py`，请满足：
-
-1. 先说明为什么不能通过配置、adapter 或 judge 解决。
-2. 改动前确认不会影响已有 task。
-3. 改动后至少做一次全链路 smoke run。
-
-## 7. 改进现有 judge 的规范
+## 10. judge 维护规范
 
 ### 客观题
 
-客观题优先规则判分，不要默认换成 LLM judge。
-
-适用：
+客观题默认优先规则判分，适用于：
 
 - 单选题
 - 多选题
@@ -179,161 +190,106 @@
 
 优先修改位置：
 
-- `judge_teaching_harm.py`
-- `judge_highlevel.py`
-- `utils/parsing.py`
+- `src/elbench/judges/judge_teaching_harm.py`
+- `src/elbench/judges/judge_highlevel.py`
+- `src/elbench/judges/judge_mmlu.py`
+- `src/elbench/judges/judge_ifeval.py`
+- `src/elbench/judges/judge_math.py`
+- `src/elbench/utils/parsing.py`
 
 ### 主观题
 
-主观题优先 `LLM-as-a-Judge`，且 judge model 必须与被测模型解耦。
+主观题优先 `LLM-as-a-Judge`，且 judge model 必须和被测模型解耦。
 
 优先修改位置：
 
 - `configs/judges.yaml`
-- `judges/llm_prompting.py`
-- `judges/llm_judge.py`
+- `src/elbench/judges/llm_prompting.py`
+- `src/elbench/judges/llm_judge.py`
 
-不要做的事情：
+禁止：
 
-- 不要让被测模型直接给自己打分。
-- 不要把 judge prompt 写死在 runner 里。
-- 不要让主观题的 rubric 分散在多个无关文件里。
+- 让被测模型给自己打分
+- 把 judge prompt 写死在 `runner.py`
+- 把 rubric 散落到无关文件
 
-## 8. 模型与 provider 接入规范
+## 11. 模型与 provider 接入规范
 
 ### 新增模型
 
-如果只是新增某个 provider 下的新模型：
-
-1. 先确认现有 adapter 是否已经支持。
+1. 先确认现有 adapter 是否已支持。
 2. 只改 `configs/models.yaml`。
 3. 如需新的限流或 timeout，也只在该模型配置里加。
 
 ### 新增 provider
 
-如果是全新 provider：
+1. 在 `src/elbench/providers/` 新增 adapter。
+2. 在 `factory.py` 注册。
+3. 在 `configs/providers.yaml` 增加 provider。
+4. 在 `configs/models.yaml` 增加具体模型实例。
 
-1. 在 `src/elbench/providers/` 新增 adapter
-2. 在 `factory.py` 注册
-3. 在 `configs/providers.yaml` 新增 provider
-4. 在 `configs/models.yaml` 新增具体模型实例
+要求：
 
-规范要求：
+- provider 差异必须封装在 adapter 内
+- 不允许在 runner 或 judge 中写 provider-specific 参数名
 
-- provider 差异必须封装在 adapter 内部。
-- 不允许在 runner 或 judge 里写 provider-specific 参数名。
+## 12. 与大模型协作维护的要求
 
-## 9. 团队使用大模型进行 vibe coding 的协作规范
+每次让大模型改 ELBench 时，至少要明确告诉它：
 
-这是本指南最重要的部分之一。
+- 项目名是 `ELBench`
+- 这是长期维护 benchmark 框架，不是 demo
+- 正式数据根目录是 `data/benchmark_root/`
+- 当前 judge 策略是“客观题 rule，主观题 llm judge”
+- 先看 `README.md`、本指南和相关配置，再改代码
 
-### 每次开始前必须给大模型的上下文
+并要求它：
 
-至少明确告诉模型：
+1. 优先改配置
+2. 新增数据时同步改 `file_registry`、`field_mappings`、`judges`
+3. 改 judge 时补测试
+4. 提交前跑最小验证命令
 
-- 当前项目名：`ELBench`
-- 项目定位：长期维护的 benchmark 框架，不是一次性 demo
-- 目录根：`data/benchmark_root/`
-- 修改原则：配置驱动、不要写死 provider、不要改输出结构
-- 当前 judge 策略：客观题 rule，主观题 llm judge
-- 要求先看：
-  - `README.md`
-  - 本指南
-  - 相关配置文件
-  - 相关源码模块
+## 13. 提交前检查清单
 
-### 对大模型的明确要求
-
-建议每次都要求：
-
-1. 先阅读相关配置和代码，再修改。
-2. 优先改配置，不要直接侵入主流程。
-3. 新增数据时同步补 `file_registry`、`field_mappings`、`judges`。
-4. 改 judge 时补测试。
-5. 提交前跑最小验证命令。
-
-### 不要让大模型做的事情
-
-- 不要让它直接重写整个框架
-- 不要让它为了一个新文件重构所有目录
-- 不要让它把配置合并回代码硬编码
-- 不要让它随意改 README 中对外承诺
-- 不要让它直接删除已有文件或覆盖数据
-
-## 10. 每类需求的推荐修改入口
-
-| 需求 | 优先查看/修改 |
-|---|---|
-| 新增 benchmark 文件 | `configs/file_registry.yaml`, `configs/field_mappings.yaml` |
-| 新增模块 | `configs/module_registry.yaml`, `data/benchmark_root/`, `configs/file_registry.yaml` |
-| 原始字段名变了 | `configs/field_mappings.yaml` |
-| 某 task 从规则改为 llm judge | `configs/judges.yaml` |
-| 新增 judge prompt | `src/elbench/judges/llm_prompting.py` |
-| 新增客观题 judge | `src/elbench/judges/judge_*.py` |
-| 新增 provider | `src/elbench/providers/` + `configs/providers.yaml` |
-| 新增模型 | `configs/models.yaml` |
-| 改并发/重试 | `configs/app.yaml`, `configs/models.yaml`, `src/elbench/execution/` |
-| 改 summary 统计维度 | `src/elbench/summary/aggregator.py` |
-| 改输出结构 | `src/elbench/schemas/evaluation.py`, `src/elbench/persistence/writers.py` |
-
-## 11. 提交前检查清单
-
-任何成员在提交前至少检查：
-
-- [ ] 新数据是否放在 `data/benchmark_root/` 正确目录下
-- [ ] `file_registry.yaml` 是否同步更新
-- [ ] `field_mappings.yaml` 是否同步更新
-- [ ] `judges.yaml` 是否同步更新
-- [ ] 是否误改了 `outputs/` 结构
+- [ ] 新数据是否放在 `data/benchmark_root/` 正确目录
+- [ ] `configs/file_registry.yaml` 是否已同步更新
+- [ ] `configs/field_mappings.yaml` 是否已同步更新
+- [ ] `configs/judges.yaml` 是否已同步更新
+- [ ] 是否误改输出结构
 - [ ] 是否新增或更新了测试
+- [ ] 是否清掉了 `outputs/`、缓存目录、系统垃圾文件
 - [ ] 是否执行了：
-  - `python -m unittest tests.test_registry_and_loaders tests.test_judges`
+  - `python -m unittest tests.test_basic_education_bridge tests.test_registry_and_loaders tests.test_judges`
   - `python scripts/run_benchmark.py inspect`
   - 至少一次小样本 `run`
 
-## 12. 推荐 smoke 命令
+## 14. 推荐验证命令
 
 ```bash
-python -m unittest tests.test_registry_and_loaders tests.test_judges
+python -m unittest tests.test_basic_education_bridge tests.test_registry_and_loaders tests.test_judges
 python scripts/run_benchmark.py inspect
 python scripts/run_benchmark.py run --model-id mock.default --max-samples 3 --run-id smoke-test --no-resume
 ```
 
-## 13. 常见错误
+## 15. 常见错误
 
-### 错误 1：新增数据后只改了代码，没改注册表
+### 错误 1：只改代码，不改注册表
 
-后果：
-- 文件不会被主流程识别
-- `inspect` 看不到
+后果：文件不会被主流程识别，`inspect` 看不到。
 
-### 错误 2：字段名变了，直接去改 loader
+### 错误 2：字段名变了，直接改 loader
 
-正确做法：
-- 先看能不能只改 `field_mappings.yaml`
+正确做法：先看能不能只改 `configs/field_mappings.yaml`。
 
 ### 错误 3：新增模型时去改 runner
 
-正确做法：
-- 优先改 `models.yaml`
-- 必要时才新增 provider adapter
+正确做法：优先改 `configs/models.yaml`，必要时才新增 adapter。
 
-### 错误 4：主观题 judge 散落在多个文件
+### 错误 4：把一次性分析稿留在 `docs/`
 
-正确做法：
-- 统一通过 `judges.yaml` 路由
-- rubric 集中在 `llm_prompting.py`
+正确做法：只保留活文档；临时分析不要长期入库。
 
-### 错误 5：把实验输出提交到仓库
+### 错误 5：把 `outputs/`、缓存或 `.DS_Store` 提交进仓库
 
-正确做法：
-- 确保 `outputs/` 仍被 `.gitignore` 忽略
-
-## 14. 结论
-
-团队维护 ELBench 时，最重要的不是“谁写得快”，而是所有人都按同一套工程边界工作。  
-后续无论是新增数据、增加模型、改 judge、补模块，默认都应该优先走：
-
-**数据目录 -> 文件注册表 -> 字段映射 -> judge 配置 -> 边界层代码 -> 测试验证**
-
-只要所有维护者都按这条路径操作，项目就能长期保持可扩展、可复现、可维护。
+正确做法：确保它们继续被 `.gitignore` 忽略，并在提交前清理工作区。

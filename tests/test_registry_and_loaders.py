@@ -17,7 +17,7 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
         config = load_project_config(Path("configs"))
         registry = FileRegistry(config)
         resolved = registry.resolve()
-        self.assertEqual(len(resolved), 12)
+        self.assertEqual(len(resolved), 19)
 
     def test_loaders_produce_samples(self) -> None:
         config = load_project_config(Path("configs"))
@@ -28,6 +28,31 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
             sample = next(iter(loader.iter_samples(item)))
             self.assertTrue(sample.prompt)
             self.assertEqual(sample.source_file, item.entry.canonical_name)
+
+    def test_basic_education_templates_are_registered_under_data_root(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(modules={"基本教育"})
+        self.assertEqual(len(resolved), 4)
+
+        expected_counts = {
+            "knowledge.yaml": 10,
+            "question.yaml": 10,
+            "cross.yaml": 10,
+            "config_guided_task.yaml": 15,
+        }
+        actual_counts: dict[str, int] = {}
+        for item in resolved:
+            self.assertIn(str(ROOT / "data" / "benchmark_root" / "基本教育"), str(item.path))
+            loader = LoaderFactory.create(item.entry.loader_name)
+            samples = list(loader.iter_samples(item))
+            actual_counts[item.entry.canonical_name] = len(samples)
+            self.assertTrue(samples)
+            self.assertEqual(samples[0].module, "基本教育")
+            self.assertEqual(samples[0].subset, item.entry.subset)
+            self.assertEqual(samples[0].dimension, item.entry.subset)
+
+        self.assertEqual(actual_counts, expected_counts)
 
     def test_highlevel_omni_dimension_is_parsed_from_field(self) -> None:
         config = load_project_config(Path("configs"))
@@ -129,6 +154,48 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
         self.assertIn("Every morning Aya goes", sample.prompt)
         self.assertIn("Put your answer inside \\boxed{}", sample.prompt)
         self.assertEqual((sample.reference or {}).get("target"), "\\boxed{204}")
+
+    def test_aime25_uses_aime_loader_and_default_dimension(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"aime25.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample = next(iter(loader.iter_samples(resolved[0])))
+
+        self.assertEqual(sample.module, "通用模型")
+        self.assertEqual(sample.task, "aime25")
+        self.assertEqual(sample.dimension, "default")
+        self.assertIn("Put your answer inside \\boxed{}", sample.prompt)
+        self.assertEqual((sample.reference or {}).get("target"), "70")
+
+    def test_aime26_uses_aime_loader_and_default_dimension(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"aime26.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample = next(iter(loader.iter_samples(resolved[0])))
+
+        self.assertEqual(sample.module, "通用模型")
+        self.assertEqual(sample.task, "aime26")
+        self.assertEqual(sample.dimension, "default")
+        self.assertIn("Put your answer inside \\boxed{}", sample.prompt)
+        self.assertEqual((sample.reference or {}).get("target"), "277")
+
+    def test_gsm8k_uses_math_reasoning_loader(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"gsm8k_sampled.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample = next(iter(loader.iter_samples(resolved[0])))
+
+        self.assertEqual(sample.module, "通用模型")
+        self.assertEqual(sample.task, "gsm8k")
+        self.assertEqual(sample.dimension, "default")
+        self.assertIn("Please reason step by step", sample.prompt)
+        self.assertEqual((sample.reference or {}).get("target"), "18")
 
 
 if __name__ == "__main__":

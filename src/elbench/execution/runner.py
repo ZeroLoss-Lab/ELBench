@@ -17,7 +17,14 @@ from elbench.schemas.config import ModelConfig, ProjectConfig, RateLimitConfig, 
 from elbench.schemas.evaluation import EvalResult, FailureRecord, GenerationRequest, ModelResponse, Sample
 from elbench.summary import build_summary
 
+from .basic_education import BasicEducationExecutor, DEFAULT_BASIC_MODULE_NAME
 from .rate_limit import SlidingWindowRateLimiter
+from .response_format import (
+    ResponseFormatError,
+    attach_format_metadata,
+    augment_prompt_for_format,
+    get_response_format_spec,
+)
 from .retry import is_retryable_exception, sleep_before_retry
 
 
@@ -41,29 +48,136 @@ class BenchmarkRunner:
 
     async def run(self, options: RunOptions) -> dict[str, object]:
         model_config = self._get_model_config(options.model_id)
-        provider_config = self.config.providers[model_config.provider_name]
         output_paths = OutputPaths.build(self.config.app.output_root, options.run_id, options.model_id)
         logger = configure_run_logger(output_paths.log_path)
         checkpoint = CheckpointStore(output_paths.checkpoint_path)
         if options.resume:
             checkpoint.load()
 
+        raw_writer = JsonlWriter(output_paths.raw_path)
+        judged_writer = JsonlWriter(output_paths.judged_path)
+        failure_writer = JsonlWriter(output_paths.failures_path)
+        retry_writer = JsonlWriter(output_paths.retries_path)
+
+        requested_modules = set(options.modules) if options.modules else None
+        include_basic_education = (
+            requested_modules is not None and DEFAULT_BASIC_MODULE_NAME in requested_modules
+        )
+        if requested_modules is None:
+            standard_modules = {
+                module_name
+                for module_name, module_entry in self.config.modules.items()
+                if module_entry.enabled and module_name != DEFAULT_BASIC_MODULE_NAME
+            }
+        else:
+            standard_modules = {
+                module_name for module_name in requested_modules if module_name != DEFAULT_BASIC_MODULE_NAME
+            }
+        if include_basic_education and standard_modules and options.max_samples is not None:
+            logger.warning(
+                "Mixed module run with max_samples=%s: standard modules consume the budget first; "
+                "basic education receives the remaining budget.",
+                options.max_samples,
+            )
+
+        standard_loaded = 0
+        standard_failures = 0
+        if standard_modules:
+            standard_stats = await self._run_standard_samples(
+                logger=logger,
+                checkpoint=checkpoint,
+                raw_writer=raw_writer,
+                judged_writer=judged_writer,
+                failure_writer=failure_writer,
+                retry_writer=retry_writer,
+                model_config=model_config,
+                options=options,
+                modules=standard_modules,
+            )
+            standard_loaded = standard_stats["loaded_samples"]
+            standard_failures = standard_stats["failed_samples"]
+
+        basic_stats = {
+            "scenario_count": 0,
+            "loaded_samples": 0,
+            "completed_samples": 0,
+            "failed_samples": 0,
+        }
+        remaining_for_basic = options.max_samples
+        if remaining_for_basic is not None:
+            remaining_for_basic = max(0, remaining_for_basic - standard_loaded)
+        if include_basic_education:
+            if remaining_for_basic == 0:
+                logger.info("Skip basic education branch because max_samples budget is exhausted.")
+            else:
+                basic_runner = BasicEducationExecutor(
+                    project_config=self.config,
+                    model_config=model_config,
+                    logger=logger,
+                )
+                basic_result = await basic_runner.run(
+                    run_id=options.run_id,
+                    checkpoint=checkpoint,
+                    raw_writer=raw_writer,
+                    judged_writer=judged_writer,
+                    failure_writer=failure_writer,
+                    judge_enabled=options.judge_enabled,
+                    subsets=options.subsets,
+                    source_files=options.source_files,
+                    dimensions=options.dimensions,
+                    max_samples=remaining_for_basic,
+                )
+                basic_stats = {
+                    "scenario_count": basic_result.scenario_count,
+                    "loaded_samples": basic_result.loaded_samples,
+                    "completed_samples": basic_result.completed_samples,
+                    "failed_samples": basic_result.failed_samples,
+                }
+
+        summary = build_summary(output_paths.judged_path, output_paths.failures_path)
+        output_paths.summary_path.write_text(
+            json.dumps(summary, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        logger.info("Run finished. summary_path=%s", output_paths.summary_path)
+        return {
+            "run_id": options.run_id,
+            "summary_path": str(output_paths.summary_path),
+            "raw_path": str(output_paths.raw_path),
+            "judged_path": str(output_paths.judged_path),
+            "failures_path": str(output_paths.failures_path),
+            "standard_loaded_samples": standard_loaded,
+            "standard_failed_samples": standard_failures,
+            "basic_education": basic_stats,
+        }
+
+    async def _run_standard_samples(
+        self,
+        *,
+        logger: logging.Logger,
+        checkpoint: CheckpointStore,
+        raw_writer: JsonlWriter,
+        judged_writer: JsonlWriter,
+        failure_writer: JsonlWriter,
+        retry_writer: JsonlWriter,
+        model_config: ModelConfig,
+        options: RunOptions,
+        modules: set[str] | None,
+    ) -> dict[str, int]:
+        provider_config = self.config.providers[model_config.provider_name]
         registry = FileRegistry(self.config)
         resolved_items = registry.resolve(
-            modules=options.modules,
+            modules=modules,
             subsets=options.subsets,
             source_files=options.source_files,
         )
         samples = list(self._load_samples(resolved_items, options.dimensions, options.max_samples))
         logger.info("Resolved %s samples from %s files.", len(samples), len(resolved_items))
+        if not samples:
+            return {"loaded_samples": 0, "failed_samples": 0}
 
-        raw_writer = JsonlWriter(output_paths.raw_path)
-        judged_writer = JsonlWriter(output_paths.judged_path)
-        failure_writer = JsonlWriter(output_paths.failures_path)
-        retry_writer = JsonlWriter(output_paths.retries_path)
         judge_router = JudgeRouter(self.config)
         client = ProviderFactory.create(provider_config, model_config)
-
         merged_rate_limits = self._merge_rate_limits(
             self.config.app.default_run.provider_rate_limits.get(provider_config.provider_name)
             or self.config.app.default_run.provider_rate_limits.get("default")
@@ -108,20 +222,7 @@ class BenchmarkRunner:
         await asyncio.gather(*tasks)
         await client.aclose()
         await judge_router.aclose()
-
-        summary = build_summary(output_paths.judged_path, output_paths.failures_path)
-        output_paths.summary_path.write_text(
-            json.dumps(summary, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-        logger.info("Run finished. summary_path=%s", output_paths.summary_path)
-        return {
-            "run_id": options.run_id,
-            "summary_path": str(output_paths.summary_path),
-            "raw_path": str(output_paths.raw_path),
-            "judged_path": str(output_paths.judged_path),
-            "failures_path": str(output_paths.failures_path),
-        }
+        return {"loaded_samples": len(samples), "failed_samples": progress["failed"]}
 
     def _load_samples(
         self,
@@ -234,11 +335,13 @@ class BenchmarkRunner:
         retry_writer: JsonlWriter,
         checkpoint: CheckpointStore,
     ) -> EvalResult:
+        prompt = augment_prompt_for_format(sample, sample.prompt)
         request = GenerationRequest(
-            prompt=sample.prompt,
+            prompt=prompt,
             temperature=model_config.temperature,
             max_tokens=model_config.max_tokens,
             stream=bool(model_config.supports_stream),
+            messages=[{"role": "user", "content": prompt}],
             provider_kwargs={},
         )
         response, retry_count = await self._generate_with_retry(
@@ -290,14 +393,47 @@ class BenchmarkRunner:
         attempts = retry_policy.max_attempts
         retryable_codes = set(retry_policy.retryable_status_codes)
         sample_key = self._sample_key(sample)
+        format_spec = get_response_format_spec(sample)
+        base_prompt = request.prompt
+        request_messages = list(request.messages) if request.messages else [{"role": "user", "content": base_prompt}]
         for attempt in range(1, attempts + 1):
             estimated_tokens = self._estimate_tokens(request.prompt, request.max_tokens)
             await limiter.acquire(estimated_tokens=estimated_tokens)
             try:
+                request.messages = request_messages
                 response = await client.generate(sample=sample, request=request)
+                response = attach_format_metadata(response, format_spec)
                 response.retry_count = attempt - 1
                 await checkpoint.set_retry_count(sample_key, attempt - 1)
                 return response, attempt - 1
+            except ResponseFormatError as exc:
+                await checkpoint.set_retry_count(sample_key, attempt)
+                if attempt >= attempts:
+                    raise
+                delay = await sleep_before_retry(retry_policy, attempt)
+                previous_response_text = ""
+                if "response" in locals():
+                    maybe_response = locals()["response"]
+                    if isinstance(maybe_response, ModelResponse):
+                        previous_response_text = maybe_response.text or ""
+                reminder = format_spec.build_reminder(previous_response_text) if format_spec else ""
+                request_messages = [
+                    {"role": "user", "content": base_prompt},
+                    {"role": "assistant", "content": previous_response_text},
+                    {"role": "user", "content": reminder},
+                ]
+                await retry_writer.write(
+                    {
+                        "sample_id": sample.sample_id,
+                        "source_file": sample.source_file,
+                        "attempt": attempt,
+                        "next_delay_seconds": delay,
+                        "error_type": type(exc).__name__,
+                        "error_message": str(exc),
+                        "retry_reason": "format_invalid",
+                        "format_metadata": exc.metadata,
+                    }
+                )
             except Exception as exc:  # noqa: BLE001
                 await checkpoint.set_retry_count(sample_key, attempt)
                 if attempt >= attempts or not is_retryable_exception(exc, retryable_codes):
