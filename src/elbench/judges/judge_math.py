@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from elbench.judges.base import BaseJudge
+from elbench.judges.math_rule.grader import grade_answer
 from elbench.judges.math_rule.math_parser import (
     extract_answer,
     math_equal,
@@ -17,9 +18,7 @@ class Math500Judge(BaseJudge):
     async def judge(self, sample: Sample, response: ModelResponse) -> JudgeResult:
         expected_answer = self._loader.expected_answer_from_sample(sample)
         predicted_answer = extract_answer(response.text or "")
-        normalized_prediction = strip_answer_string(predicted_answer)
-        normalized_expected = strip_answer_string(expected_answer)
-        passed = process_math500(response.text or "", expected_answer) == 1.0
+        passed = process_math500(predicted_answer, expected_answer) == 1.0
         return JudgeResult(
             judge_name="math_500_acc",
             judge_result="pass" if passed else "fail",
@@ -28,8 +27,6 @@ class Math500Judge(BaseJudge):
             judge_metadata={
                 "predicted_answer": predicted_answer,
                 "expected_answer": expected_answer,
-                "normalized_prediction": normalized_prediction,
-                "normalized_expected": normalized_expected,
                 "question_id": sample.metadata.get("question_id"),
                 "level": sample.dimension or sample.metadata.get("subset_key"),
             },
@@ -41,9 +38,7 @@ class AIMEJudge(Math500Judge):
         expected_raw = self._loader.expected_answer_from_sample(sample)
         expected_answer = extract_answer(expected_raw, use_last_number=False) or strip_answer_string(expected_raw)
         predicted_answer = extract_answer(response.text or "")
-        normalized_prediction = strip_answer_string(predicted_answer)
-        normalized_expected = strip_answer_string(expected_answer)
-        passed = math_equal(normalized_prediction, normalized_expected)
+        passed = grade_answer(predicted_answer, expected_answer)
         return JudgeResult(
             judge_name="aime_acc",
             judge_result="pass" if passed else "fail",
@@ -53,7 +48,5 @@ class AIMEJudge(Math500Judge):
                 "predicted_answer": predicted_answer,
                 "expected_answer": expected_answer,
                 "raw_expected_answer": expected_raw,
-                "normalized_prediction": normalized_prediction,
-                "normalized_expected": normalized_expected,
             },
         )
