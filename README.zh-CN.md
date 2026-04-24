@@ -17,7 +17,7 @@ ELBench 不是临时脚本，而是按正式工程维护的评测系统。当前
 - `安全可信`：5 个文件
 - `高阶育人`：2 个文件
 - `基本教育`：4 个 YAML 场景，共 `45` 题
-- `通用模型`：5 个单轮 benchmark 文件
+- `通用模型`：8 个单轮 benchmark 文件
 
 `基本教育` 已作为 ELBench 的正式模块接入。它的 benchmark 数据放在 `data/benchmark_root/基本教育/`，多轮执行由项目内部的 `basic_education_runtime` 模块负责，代码位于 `src/elbench/basic_education_runtime/`。
 
@@ -55,6 +55,9 @@ ELBench 不是临时脚本，而是按正式工程维护的评测系统。当前
 - `ifeval_sampled.jsonl`
 - `math_500_sampled.jsonl`
 - `aime24_sampled.jsonl`
+- `aime25.jsonl`
+- `aime26.jsonl`
+- `gsm8k_sampled.jsonl`
 
 只有进入 `configs/file_registry.yaml` 的文件，才算 ELBench 当前正式可运行的 benchmark 数据。
 
@@ -69,6 +72,9 @@ ELBench 不是临时脚本，而是按正式工程维护的评测系统。当前
 - `ifeval_sampled.jsonl`
 - `math_500_sampled.jsonl`
 - `aime24_sampled.jsonl`
+- `aime25.jsonl`
+- `aime26.jsonl`
+- `gsm8k_sampled.jsonl`
 
 主观开放题走 `LLM-as-a-Judge`：
 
@@ -267,7 +273,7 @@ python scripts/run_benchmark.py run --model-id <你的模型ID> --module 基本�
 ## 测试
 
 ```bash
-python -m unittest tests.test_basic_education_bridge tests.test_registry_and_loaders tests.test_judges
+python -m unittest tests.test_basic_education_bridge tests.test_registry_and_loaders tests.test_judges tests.test_response_format_retry
 ```
 
 `tests/` 是需要长期保留的正式目录，不是临时目录。

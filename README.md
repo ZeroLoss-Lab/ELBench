@@ -17,7 +17,7 @@ The current registered benchmark inventory is:
 - `安全可信`: 5 files
 - `高阶育人`: 2 files
 - `基本教育`: 4 YAML scenarios, `45` tasks total
-- `通用模型`: 5 single-turn benchmark files
+- `通用模型`: 8 single-turn benchmark files
 
 `基本教育` is integrated as a first-class ELBench module. Its benchmark data lives under `data/benchmark_root/基本教育/`, and its multi-turn execution is handled by the internal `basic_education_runtime` module at `src/elbench/basic_education_runtime/`.
 
@@ -55,6 +55,9 @@ This internal runtime was adapted from the ELMES project, but it is now packaged
 - `ifeval_sampled.jsonl`
 - `math_500_sampled.jsonl`
 - `aime24_sampled.jsonl`
+- `aime25.jsonl`
+- `aime26.jsonl`
+- `gsm8k_sampled.jsonl`
 
 Files are only considered active benchmark inputs after they are registered. Data files not present in `configs/file_registry.yaml` are not part of the runnable benchmark.
 
@@ -69,6 +72,9 @@ Objective tasks use rule or reference matching:
 - `ifeval_sampled.jsonl`
 - `math_500_sampled.jsonl`
 - `aime24_sampled.jsonl`
+- `aime25.jsonl`
+- `aime26.jsonl`
+- `gsm8k_sampled.jsonl`
 
 Subjective or open-ended tasks use `LLM-as-a-Judge`:
 
@@ -267,7 +273,7 @@ python scripts/run_benchmark.py run --model-id <your_model_id> --module 基本�
 ## Tests
 
 ```bash
-python -m unittest tests.test_basic_education_bridge tests.test_registry_and_loaders tests.test_judges
+python -m unittest tests.test_basic_education_bridge tests.test_registry_and_loaders tests.test_judges tests.test_response_format_retry
 ```
 
 The `tests/` directory is part of the maintained framework and should stay in the repository.
