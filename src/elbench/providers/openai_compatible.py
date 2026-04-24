@@ -1,6 +1,5 @@
 ﻿from __future__ import annotations
 
-import os
 from time import perf_counter
 from typing import Any
 
@@ -8,6 +7,7 @@ import httpx
 
 from elbench.providers.base import ModelClient
 from elbench.schemas.evaluation import GenerationRequest, ModelResponse
+from elbench.utils.secrets import get_api_key
 
 
 class OpenAICompatibleClient(ModelClient):
@@ -23,7 +23,7 @@ class OpenAICompatibleClient(ModelClient):
         headers = dict(self.provider_config.headers)
         api_key_env = self.model_config.api_key_env
         if api_key_env:
-            api_key = os.getenv(api_key_env)
+            api_key = get_api_key(api_key_env)
             if not api_key:
                 raise ValueError(f"Environment variable {api_key_env} is not set")
             headers["Authorization"] = f"Bearer {api_key}"

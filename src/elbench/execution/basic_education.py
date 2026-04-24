@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from elbench.persistence import CheckpointStore, JsonlWriter
 from elbench.schemas.config import ModelConfig, ProjectConfig
 from elbench.schemas.evaluation import EvalResult, FailureRecord
+from elbench.utils.secrets import get_api_key
 RUNTIME_REQUIRED_MODULES = (
     "aiosqlite",
     "click",
@@ -348,7 +349,7 @@ class BasicEducationExecutor:
             )
         api_key = ""
         if model_config.api_key_env:
-            api_key = os.getenv(model_config.api_key_env, "")
+            api_key = get_api_key(model_config.api_key_env)
             if not api_key:
                 raise ValueError(
                     f"Environment variable {model_config.api_key_env} is not set "
