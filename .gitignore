@@ -16,3 +16,5 @@ build/
 *.egg-info/
 outputs/
 key.txt
+tmp/
+tmp_test_artifacts/

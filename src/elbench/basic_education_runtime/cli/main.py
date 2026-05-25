@@ -1,5 +1,6 @@
 import click
-from langchain.globals import set_debug
+
+from elbench.basic_education_runtime.langchain_compat import set_debug
 
 from elbench.basic_education_runtime.cli.generate import generate, generate_logic
 from elbench.basic_education_runtime.cli.eval import eval, eval_logic

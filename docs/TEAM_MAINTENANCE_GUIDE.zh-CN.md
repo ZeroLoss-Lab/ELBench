@@ -49,7 +49,10 @@
 | `scripts/run_benchmark.py` | 保留 | 运行入口薄封装 | 很少改；只改入口行为 |
 | `src/elbench/` | 保留 | ELBench 正式源码 | 根据职责分层修改 |
 | `tests/` | 保留 | 回归测试与 smoke test | 新增/修改功能后同步补测试 |
+| `results/` | 保留 | 正式结果包目录，只放审核后的可提交结果 | 新增正式结果快照时 |
 | `outputs/` | 不入库 | 运行产物目录 | 本地跑实验时自动生成 |
+
+正式结果包规范见 `docs/RESULT_STORAGE_SPEC.zh-CN.md`，当前结果索引见 `results/README.md`。
 
 ## 4. `configs/` 职责表
 

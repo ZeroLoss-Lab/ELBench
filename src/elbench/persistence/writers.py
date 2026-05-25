@@ -38,13 +38,27 @@ class OutputPaths:
 
 
 class JsonlWriter:
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, *, flush_interval: int = 1) -> None:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = asyncio.Lock()
+        self._flush_interval = max(1, int(flush_interval))
+        self._buffer: list[str] = []
 
     async def write(self, payload: dict[str, Any]) -> None:
         line = json.dumps(payload, ensure_ascii=False, default=str) + "\n"
         async with self._lock:
-            with self.path.open("a", encoding="utf-8") as handle:
-                handle.write(line)
+            self._buffer.append(line)
+            if len(self._buffer) >= self._flush_interval:
+                self._flush_unlocked()
+
+    async def flush(self) -> None:
+        async with self._lock:
+            self._flush_unlocked()
+
+    def _flush_unlocked(self) -> None:
+        if not self._buffer:
+            return
+        with self.path.open("a", encoding="utf-8") as handle:
+            handle.writelines(self._buffer)
+        self._buffer.clear()

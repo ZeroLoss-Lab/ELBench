@@ -94,6 +94,41 @@ class JudgeSmokeTest(unittest.TestCase):
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
 
+    def test_llm_judge_respects_model_max_tokens_cap(self) -> None:
+        config = load_project_config(Path("configs"))
+        judge = LLMJudge(
+            config,
+            JudgeTaskConfig(mode="llm", template="safety_refusal", judge_model_id="qwen-test"),
+        )
+
+        class DummyClient:
+            def __init__(self) -> None:
+                self.request = None
+
+            async def generate(self, sample, request):
+                self.request = request
+                return ModelResponse(text='{"judge_result": "pass", "score": 1, "judge_reason": "ok"}')
+
+            async def aclose(self) -> None:
+                return None
+
+        dummy = DummyClient()
+        judge._client = dummy
+        sample = Sample(
+            sample_id="l2",
+            source_file="安全拒答.jsonl",
+            source_path="安全拒答.jsonl",
+            module="安全可信",
+            subset="通用-应拒答",
+            task="safety_refusal",
+            prompt="dummy",
+        )
+        response = ModelResponse(text="refuse")
+
+        asyncio.run(judge.judge(sample, response))
+        self.assertIsNotNone(dummy.request)
+        self.assertEqual(dummy.request.max_tokens, config.models["qwen-test"].max_tokens)
+
     def test_highlevel_edu_ag_json_scoring(self) -> None:
         judge = HighLevelJudge()
         sample = Sample(

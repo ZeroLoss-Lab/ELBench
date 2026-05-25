@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import itertools
 import json
 import logging
 import os
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import reduce
@@ -32,6 +34,8 @@ RUNTIME_REQUIRED_MODULES = (
 
 DEFAULT_BASIC_MODULE_NAME = "基本教育"
 
+DEFAULT_MULTI_TURN_RECURSION_LIMIT = 20
+
 
 class BasicEducationScenarioConfig(BaseModel):
     scenario_id: str
@@ -44,6 +48,7 @@ class BasicEducationScenarioConfig(BaseModel):
     multi_turn: bool = False
     dimension: str | None = None
     target_model_keys: list[str] = Field(default_factory=list)
+    test_endpoint_model_keys: list[str] = Field(default_factory=list)
     judge_model_keys: list[str] = Field(default_factory=list)
     pass_threshold: float | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -57,6 +62,7 @@ class BasicEducationConfig(BaseModel):
     command_timeout_seconds: int = 7200
     continue_on_error: bool = False
     workspace_root: Path = Path("outputs/basic_education")
+    test_endpoint_model_id: str | None = None
     evaluator_model_id: str | None = None
     default_pass_threshold: float | None = 3.0
     scenarios: list[BasicEducationScenarioConfig] = Field(default_factory=list)
@@ -235,6 +241,7 @@ class BasicEducationExecutor:
                 template_data=template_data,
                 scenario=scenario,
                 memory_path=memory_path,
+                max_samples=max_samples,
             )
             rendered_config_path.write_text(
                 yaml.safe_dump(rendered, allow_unicode=True, sort_keys=False),
@@ -252,10 +259,15 @@ class BasicEducationExecutor:
             return BasicEducationRunStats(scenario_count=1, failed_samples=1)
 
         try:
+            self._reset_runtime_artifacts(memory_path)
             if judge_enabled:
                 await self._run_runtime_command(["pipeline", "--config", str(rendered_config_path)])
             else:
-                await self._run_runtime_command(["generate", "--config", str(rendered_config_path)])
+                await self._run_runtime_command(
+                    ["generate", "--config", str(rendered_config_path)],
+                    memory_path=memory_path,
+                    expected_samples=max_samples,
+                )
                 await self._run_runtime_command(["export", "json", "--config", str(rendered_config_path)])
         except Exception as exc:  # noqa: BLE001
             await self._write_scenario_failure(
@@ -287,12 +299,23 @@ class BasicEducationExecutor:
         template_data: dict[str, Any],
         scenario: BasicEducationScenarioConfig,
         memory_path: Path,
+        max_samples: int | None,
     ) -> dict[str, Any]:
         rendered = json.loads(json.dumps(template_data, ensure_ascii=False))
         globals_section = rendered.setdefault("globals", {})
         globals_section.setdefault("memory", {})
         globals_section["memory"]["path"] = str(memory_path)
         globals_section["concurrency"] = int(self.project_config.app.default_run.max_concurrency)
+        if scenario.multi_turn:
+            existing_recursion_limit = globals_section.get("recursion_limit")
+            try:
+                current_recursion_limit = int(existing_recursion_limit)
+            except (TypeError, ValueError):
+                current_recursion_limit = DEFAULT_MULTI_TURN_RECURSION_LIMIT
+            globals_section["recursion_limit"] = min(
+                current_recursion_limit,
+                DEFAULT_MULTI_TURN_RECURSION_LIMIT,
+            )
 
         models_section = rendered.get("models")
         if not isinstance(models_section, dict) or not models_section:
@@ -308,10 +331,28 @@ class BasicEducationExecutor:
         for key in target_keys:
             models_section[key] = target_payload
 
+        test_endpoint_keys = [
+            key for key in scenario.test_endpoint_model_keys if key in models_section
+        ]
+        if scenario.test_endpoint_model_keys and not test_endpoint_keys:
+            raise ValueError(
+                f"Scenario {scenario.scenario_id} has no matching test_endpoint_model_keys in template models. "
+                f"Configured keys={scenario.test_endpoint_model_keys}, available={list(models_section)}"
+            )
+        test_endpoint_model = self._resolve_test_endpoint_model()
+        if test_endpoint_keys:
+            if test_endpoint_model is None:
+                raise ValueError(
+                    f"Scenario {scenario.scenario_id} requires a configured basic education test endpoint model "
+                    f"for keys={scenario.test_endpoint_model_keys}."
+                )
+            test_endpoint_payload = self._build_runtime_model_payload(test_endpoint_model)
+            for key in test_endpoint_keys:
+                models_section[key] = test_endpoint_payload
+
         evaluation_section = rendered.get("evaluation")
-        judge_model = self._resolve_judge_model()
-        if isinstance(evaluation_section, dict) and judge_model is not None:
-            judge_payload = self._build_runtime_model_payload(judge_model)
+        if isinstance(evaluation_section, dict) and test_endpoint_model is not None:
+            judge_payload = self._build_runtime_model_payload(test_endpoint_model)
             judge_keys = [key for key in scenario.judge_model_keys if key in models_section]
             if not judge_keys:
                 eval_model_key = evaluation_section.get("model")
@@ -323,13 +364,53 @@ class BasicEducationExecutor:
                 models_section[key] = judge_payload
             evaluation_section["model"] = judge_keys[0]
 
+        self._limit_runtime_tasks(rendered, max_samples)
+
         return rendered
 
-    def _resolve_judge_model(self) -> ModelConfig | None:
-        model_id = self.config.evaluator_model_id or self.project_config.judges.default_judge_model_id
+    def _limit_runtime_tasks(self, rendered: dict[str, Any], max_samples: int | None) -> None:
+        if max_samples is None:
+            return
+        if max_samples <= 0:
+            raise ValueError("max_samples must be positive when limiting runtime tasks.")
+
+        tasks_obj = rendered.get("tasks")
+        if not isinstance(tasks_obj, dict):
+            return
+
+        mode = str(tasks_obj.get("mode", "iter")).lower()
+        content = tasks_obj.get("content")
+
+        if mode == "iter":
+            if isinstance(content, list):
+                tasks_obj["content"] = content[:max_samples]
+            return
+
+        if mode == "union":
+            if not isinstance(content, dict) or not content:
+                return
+            keys = list(content.keys())
+            value_lists: list[list[Any]] = []
+            for key in keys:
+                value = content.get(key)
+                if not isinstance(value, list):
+                    return
+                value_lists.append(value)
+            combinations = itertools.islice(itertools.product(*value_lists), max_samples)
+            tasks_obj["mode"] = "iter"
+            tasks_obj["content"] = [dict(zip(keys, combo)) for combo in combinations]
+
+    def _resolve_test_endpoint_model(self) -> ModelConfig | None:
+        model_id = (
+            self.config.test_endpoint_model_id
+            or self.config.evaluator_model_id
+            or self.project_config.judges.default_judge_model_id
+        )
         if model_id is None:
             return None
-        return self.project_config.models.get(model_id)
+        if model_id not in self.project_config.models:
+            raise KeyError(f"Unknown basic education test endpoint model_id={model_id!r}")
+        return self.project_config.models[model_id]
 
     def _build_runtime_model_payload(self, model_config: ModelConfig) -> dict[str, Any]:
         provider_kwargs = dict(model_config.provider_kwargs)
@@ -365,7 +446,10 @@ class BasicEducationExecutor:
         kargs: dict[str, Any] = {}
         if model_config.temperature is not None:
             kargs["temperature"] = model_config.temperature
-        if model_config.max_tokens is not None:
+        runtime_max_tokens = provider_kwargs.pop("runtime_max_tokens", None)
+        if runtime_max_tokens is not None:
+            kargs["max_tokens"] = int(runtime_max_tokens)
+        elif model_config.max_tokens is not None:
             kargs["max_tokens"] = model_config.max_tokens
         if provider_kwargs:
             kargs.update(provider_kwargs)
@@ -373,7 +457,18 @@ class BasicEducationExecutor:
             payload["kargs"] = kargs
         return payload
 
-    async def _run_runtime_command(self, cli_args: list[str]) -> None:
+    def _reset_runtime_artifacts(self, memory_path: Path) -> None:
+        if memory_path.exists():
+            shutil.rmtree(memory_path)
+        memory_path.mkdir(parents=True, exist_ok=True)
+
+    async def _run_runtime_command(
+        self,
+        cli_args: list[str],
+        *,
+        memory_path: Path | None = None,
+        expected_samples: int | None = None,
+    ) -> None:
         command = [self.config.runtime_python, "-m", self.config.runtime_cli_module, *cli_args]
         env = os.environ.copy()
         cwd = str(self.project_config.project_root)
@@ -392,11 +487,19 @@ class BasicEducationExecutor:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
+        completed_via_termination = False
         try:
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
-                timeout=self.config.command_timeout_seconds,
-            )
+            if memory_path is not None and any(arg == "generate" for arg in cli_args):
+                stdout, stderr, completed_via_termination = await self._wait_for_generate_completion(
+                    process=process,
+                    memory_path=memory_path,
+                    expected_samples=expected_samples,
+                )
+            else:
+                stdout, stderr = await asyncio.wait_for(
+                    process.communicate(),
+                    timeout=self.config.command_timeout_seconds,
+                )
         except asyncio.TimeoutError:
             process.kill()
             await process.wait()
@@ -410,10 +513,133 @@ class BasicEducationExecutor:
             self.logger.info("Basic education runtime stdout:\n%s", stdout_text)
         if stderr_text:
             self.logger.warning("Basic education runtime stderr:\n%s", stderr_text)
+        if completed_via_termination:
+            self.logger.info(
+                "Basic education runtime command completed based on exported conversation state; "
+                "ignore process returncode=%s after forced termination.",
+                process.returncode,
+            )
+            return
         if process.returncode != 0:
             raise RuntimeError(
                 f"Basic education runtime command failed with exit code {process.returncode}"
             )
+
+    async def _wait_for_generate_completion(
+        self,
+        *,
+        process: asyncio.subprocess.Process,
+        memory_path: Path,
+        expected_samples: int | None,
+    ) -> tuple[bytes, bytes, bool]:
+        deadline = asyncio.get_running_loop().time() + self.config.command_timeout_seconds
+        communicate_task = asyncio.create_task(process.communicate())
+        while True:
+            try:
+                stdout, stderr = await asyncio.wait_for(asyncio.shield(communicate_task), timeout=2)
+                return stdout, stderr, False
+            except asyncio.TimeoutError:
+                if self._is_generation_complete(memory_path, expected_samples):
+                    process.terminate()
+                    try:
+                        stdout, stderr = await asyncio.wait_for(asyncio.shield(communicate_task), timeout=15)
+                        return stdout, stderr, True
+                    except asyncio.TimeoutError:
+                        process.kill()
+                        stdout, stderr = await communicate_task
+                        return stdout, stderr, True
+                if asyncio.get_running_loop().time() >= deadline:
+                    raise
+
+    def _is_generation_complete(self, memory_path: Path, expected_samples: int | None) -> bool:
+        db_files = sorted(memory_path.glob("*.db"))
+        if not db_files:
+            return False
+        if expected_samples is not None and len(db_files) < expected_samples:
+            return False
+        completed = 0
+        for db_file in db_files:
+            try:
+                obj = self._export_runtime_db(db_file)
+            except Exception:
+                return False
+            messages = obj.get("messages", [])
+            if not isinstance(messages, list) or not messages:
+                return False
+            last_message = messages[-1]
+            if not isinstance(last_message, dict):
+                return False
+            content = str(last_message.get("content", "") or "")
+            role = str(last_message.get("role", "") or "")
+            if role == "teacher" and "<end>" in content:
+                completed += 1
+        return completed == len(db_files)
+
+    def _export_runtime_db(self, input_path: Path) -> dict[str, Any]:
+        import sqlite3
+        from langgraph.checkpoint.base import Checkpoint
+        from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+        conn = sqlite3.connect(input_path)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "select checkpoint_ns, checkpoint_id, parent_checkpoint_id, checkpoint from checkpoints"
+            )
+            results = cursor.fetchall()
+            if not results:
+                return {"task": {}, "messages": []}
+            _, _, _, raw_checkpoint = results[-1]
+            checkpoint: Checkpoint = JsonPlusSerializer().loads_typed(("msgpack", raw_checkpoint))
+            messages = []
+            for message in checkpoint.get("channel_values", {}).get("messages", []):
+                name = getattr(message, "name", None)
+                if name is None:
+                    continue
+                content = self._stringify_runtime_message_content(getattr(message, "content", None))
+                messages.append({"role": name, "content": content})
+
+            cursor.execute("select key, value from task")
+            task = {key: value for key, value in cursor.fetchall()}
+            return {"task": task, "messages": messages}
+        finally:
+            conn.close()
+
+    def _stringify_runtime_message_content(self, content: Any) -> str:
+        if content is None:
+            return ""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts: list[str] = []
+            for item in content:
+                if isinstance(item, dict):
+                    block_type = str(item.get("type", "")).strip().lower()
+                    if block_type == "reasoning":
+                        continue
+                    text = item.get("text")
+                    if text not in (None, ""):
+                        parts.append(str(text))
+                        continue
+                    nested = item.get("summary")
+                    nested_text = self._stringify_runtime_message_content(nested)
+                    if nested_text:
+                        parts.append(nested_text)
+                        continue
+                else:
+                    item_text = self._stringify_runtime_message_content(item)
+                    if item_text:
+                        parts.append(item_text)
+            return "\n".join(part for part in parts if part).strip()
+        if isinstance(content, dict):
+            if "text" in content:
+                return self._stringify_runtime_message_content(content.get("text"))
+            if "content" in content:
+                return self._stringify_runtime_message_content(content.get("content"))
+            if "summary" in content:
+                return self._stringify_runtime_message_content(content.get("summary"))
+            return ""
+        return str(content)
 
     async def _import_runtime_outputs(
         self,

@@ -205,6 +205,7 @@ outputs/
 ```
 
 这些目录是运行时产物，默认不纳入 Git 管理。
+可提交、可复查的正式结果请整理到 `results/`，具体规则见 `docs/RESULT_STORAGE_SPEC.zh-CN.md` 和 `results/README.md`。
 
 ## 安装方式
 
@@ -337,6 +338,8 @@ ELBench 已经为后续模块预留了空间。标准路径仍然是：
 团队维护规范统一见：
 
 - `docs/TEAM_MAINTENANCE_GUIDE.zh-CN.md`
+- `docs/RESULT_STORAGE_SPEC.zh-CN.md`
+- `results/README.md`
 
 其中会明确每个保留目录的职责、哪些路径属于运行时产物、哪些内容不该提交进仓库。
 

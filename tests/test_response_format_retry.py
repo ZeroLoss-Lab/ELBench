@@ -12,9 +12,76 @@ if str(SRC) not in sys.path:
 
 from elbench.config import load_project_config  # noqa: E402
 from elbench.execution import BenchmarkRunner, RunOptions  # noqa: E402
+from elbench.execution.response_format import (  # noqa: E402
+    ResponseFormatSpec,
+    build_retry_followup,
+    should_force_concise_retry,
+)
+from elbench.schemas.evaluation import ModelResponse  # noqa: E402
 
 
 class ResponseFormatRetryTest(unittest.TestCase):
+    def test_empty_length_response_with_reasoning_tokens_uses_concise_retry(self) -> None:
+        response = ModelResponse(
+            text="",
+            raw_payload={
+                "choices": [
+                    {
+                        "message": {"role": "assistant", "content": ""},
+                        "finish_reason": "length",
+                    }
+                ]
+            },
+            usage={
+                "completion_tokens": 8188,
+                "completion_tokens_details": {"reasoning_tokens": 7861},
+            },
+        )
+        spec = ResponseFormatSpec(
+            name="single_choice_en",
+            instruction="The last line must be exactly: ANSWER: [LETTER].",
+            reminder_template="unused",
+            valid_letters=list("ABCD"),
+            answer_prefixes=["ANSWER"],
+        )
+
+        self.assertTrue(should_force_concise_retry(response))
+
+        followup = build_retry_followup(spec, response)
+        self.assertEqual(followup["retry_reason"], "format_empty_after_reasoning")
+        self.assertEqual(followup["max_tokens"], 64)
+        self.assertIsNone(followup["assistant_content"])
+        self.assertIn("Do not include any reasoning", followup["user_reminder"])
+        self.assertIn("ANSWER: [LETTER]", followup["user_reminder"])
+
+    def test_nonempty_response_keeps_normal_format_retry(self) -> None:
+        response = ModelResponse(
+            text="I think the answer is A.",
+            raw_payload={
+                "choices": [
+                    {
+                        "message": {"role": "assistant", "content": "I think the answer is A."},
+                        "finish_reason": "stop",
+                    }
+                ]
+            },
+            usage={"completion_tokens": 12},
+        )
+        spec = ResponseFormatSpec(
+            name="single_choice_en",
+            instruction="The last line must be exactly: ANSWER: [LETTER].",
+            reminder_template="Your previous response did not follow the required answer format.",
+            valid_letters=list("ABCD"),
+            answer_prefixes=["ANSWER"],
+        )
+
+        self.assertFalse(should_force_concise_retry(response))
+
+        followup = build_retry_followup(spec, response)
+        self.assertEqual(followup["retry_reason"], "format_invalid")
+        self.assertEqual(followup["assistant_content"], "I think the answer is A.")
+        self.assertIn("did not follow the required answer format", followup["user_reminder"])
+
     def test_single_choice_invalid_format_triggers_retry_and_recovers(self) -> None:
         temp_dir = ROOT / "tmp_test_artifacts" / "elbench_format_retry"
         shutil.rmtree(temp_dir, ignore_errors=True)

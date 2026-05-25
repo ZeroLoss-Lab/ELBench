@@ -10,14 +10,60 @@ import re
 think_regex = re.compile(r"<think>(.*?)</think>", re.DOTALL)
 
 
+def content_to_text(content: Any, include_reasoning: bool = False) -> str:
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return think_regex.sub("", content).strip()
+    if isinstance(content, list):
+        parts: List[str] = []
+        for item in content:
+            text = content_to_text(item, include_reasoning=include_reasoning)
+            if text:
+                parts.append(text)
+        return "\n".join(parts).strip()
+    if isinstance(content, dict):
+        if "role" in content and "content" in content:
+            return content_to_text(content["content"], include_reasoning=include_reasoning)
+
+        block_type = str(content.get("type", "")).strip().lower()
+        if block_type == "reasoning" and not include_reasoning:
+            return ""
+        if block_type in {"text", "output_text"}:
+            return content_to_text(content.get("text", ""), include_reasoning=include_reasoning)
+        if block_type == "reasoning":
+            summary = content_to_text(content.get("summary", ""), include_reasoning=True)
+            if summary:
+                return summary
+            return content_to_text(content.get("text", ""), include_reasoning=True)
+
+        if "text" in content:
+            return content_to_text(content.get("text", ""), include_reasoning=include_reasoning)
+        if "summary" in content:
+            return content_to_text(content.get("summary", ""), include_reasoning=include_reasoning)
+        if "content" in content:
+            return content_to_text(content.get("content", ""), include_reasoning=include_reasoning)
+        return ""
+    return str(content).strip()
+
+
 def remove_think(prompt: str | list[str | dict[str, str]] | dict[str, str]):
     if isinstance(prompt, str):
         return think_regex.sub("", prompt)
     elif isinstance(prompt, dict):
-        return {
-            "role": prompt["role"],
-            "content": remove_think(prompt["content"]),
-        }
+        if "role" in prompt and "content" in prompt:
+            return {
+                "role": prompt["role"],
+                "content": remove_think(prompt["content"]),
+            }
+        result = dict(prompt)
+        if "content" in result:
+            result["content"] = remove_think(result["content"])
+        if "text" in result:
+            result["text"] = remove_think(result["text"])
+        if "summary" in result:
+            result["summary"] = remove_think(result["summary"])
+        return result
     elif isinstance(prompt, list):
         return [remove_think(item) for item in prompt]
     else:

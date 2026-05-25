@@ -1,7 +1,7 @@
 ﻿import click
 
 from pathlib import Path
-from langchain.globals import set_debug
+from elbench.basic_education_runtime.langchain_compat import set_debug
 
 # set_debug(True)
 

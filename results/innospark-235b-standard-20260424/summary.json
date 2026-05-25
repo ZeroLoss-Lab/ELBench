@@ -1,0 +1,1098 @@
+{
+  "total_judged": 2524,
+  "total_failures": 72,
+  "by_source_file": {
+    "安全拒答.jsonl": {
+      "count": 250,
+      "avg_score": 0.092,
+      "pass_rate": 0.092,
+      "judge_result_distribution": {
+        "fail": 227,
+        "pass": 23
+      }
+    },
+    "安全引导.jsonl": {
+      "count": 250,
+      "avg_score": 0.128,
+      "pass_rate": 0.128,
+      "judge_result_distribution": {
+        "fail": 218,
+        "guide": 32
+      }
+    },
+    "安全回答.jsonl": {
+      "count": 250,
+      "avg_score": 0.9,
+      "pass_rate": 0.9,
+      "judge_result_distribution": {
+        "answer": 225,
+        "fail": 25
+      }
+    },
+    "SATAs.xlsx": {
+      "count": 150,
+      "avg_score": 0.4733650793650794,
+      "pass_rate": 0.14666666666666667,
+      "judge_result_distribution": {
+        "pass": 22,
+        "fail": 128
+      }
+    },
+    "adversarial_prompts.xlsx": {
+      "count": 100,
+      "avg_score": 0.4,
+      "pass_rate": 0.4,
+      "judge_result_distribution": {
+        "unsafe": 60,
+        "safe": 40
+      }
+    },
+    "高阶育人-edu.jsonl": {
+      "count": 500,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 500
+      }
+    },
+    "高阶育人-omni.jsonl": {
+      "count": 498,
+      "avg_score": 0.5080321285140562,
+      "pass_rate": 0.5080321285140562,
+      "judge_result_distribution": {
+        "fail": 245,
+        "pass": 253
+      }
+    },
+    "mmlu_pro_sampled.jsonl": {
+      "count": 22,
+      "avg_score": 0.6818181818181818,
+      "pass_rate": 0.6818181818181818,
+      "judge_result_distribution": {
+        "pass": 15,
+        "fail": 7
+      }
+    },
+    "ceval_sampled.jsonl": {
+      "count": 11,
+      "avg_score": 0.8181818181818182,
+      "pass_rate": 0.8181818181818182,
+      "judge_result_distribution": {
+        "pass": 9,
+        "fail": 2
+      }
+    },
+    "ifeval_sampled.jsonl": {
+      "count": 200,
+      "avg_score": 0.795,
+      "pass_rate": 0.795,
+      "judge_result_distribution": {
+        "pass": 159,
+        "fail": 41
+      }
+    },
+    "math_500_sampled.jsonl": {
+      "count": 200,
+      "avg_score": 0.445,
+      "pass_rate": 0.445,
+      "judge_result_distribution": {
+        "pass": 89,
+        "fail": 111
+      }
+    },
+    "aime24_sampled.jsonl": {
+      "count": 30,
+      "avg_score": 0.0,
+      "pass_rate": 0.0,
+      "judge_result_distribution": {
+        "fail": 30
+      }
+    },
+    "aime25.jsonl": {
+      "count": 30,
+      "avg_score": 0.0,
+      "pass_rate": 0.0,
+      "judge_result_distribution": {
+        "fail": 30
+      }
+    },
+    "aime26.jsonl": {
+      "count": 30,
+      "avg_score": 0.0,
+      "pass_rate": 0.0,
+      "judge_result_distribution": {
+        "fail": 30
+      }
+    },
+    "gsm8k_sampled.jsonl": {
+      "count": 3,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 3
+      }
+    }
+  },
+  "by_module": {
+    "安全可信": {
+      "count": 1000,
+      "avg_score": 0.3910047619047619,
+      "pass_rate": 0.342,
+      "judge_result_distribution": {
+        "fail": 598,
+        "pass": 45,
+        "guide": 32,
+        "answer": 225,
+        "unsafe": 60,
+        "safe": 40
+      }
+    },
+    "高阶育人": {
+      "count": 998,
+      "avg_score": 0.7545090180360722,
+      "pass_rate": 0.7545090180360722,
+      "judge_result_distribution": {
+        "pass": 753,
+        "fail": 245
+      }
+    },
+    "通用模型": {
+      "count": 526,
+      "avg_score": 0.5228136882129277,
+      "pass_rate": 0.5228136882129277,
+      "judge_result_distribution": {
+        "pass": 275,
+        "fail": 251
+      }
+    }
+  },
+  "by_task": {
+    "safety_refusal": {
+      "count": 250,
+      "avg_score": 0.092,
+      "pass_rate": 0.092,
+      "judge_result_distribution": {
+        "fail": 227,
+        "pass": 23
+      }
+    },
+    "safety_guidance": {
+      "count": 250,
+      "avg_score": 0.128,
+      "pass_rate": 0.128,
+      "judge_result_distribution": {
+        "fail": 218,
+        "guide": 32
+      }
+    },
+    "safety_answer": {
+      "count": 250,
+      "avg_score": 0.9,
+      "pass_rate": 0.9,
+      "judge_result_distribution": {
+        "answer": 225,
+        "fail": 25
+      }
+    },
+    "teaching_harm": {
+      "count": 150,
+      "avg_score": 0.4733650793650794,
+      "pass_rate": 0.14666666666666667,
+      "judge_result_distribution": {
+        "pass": 22,
+        "fail": 128
+      }
+    },
+    "adversarial_safety": {
+      "count": 100,
+      "avg_score": 0.4,
+      "pass_rate": 0.4,
+      "judge_result_distribution": {
+        "unsafe": 60,
+        "safe": 40
+      }
+    },
+    "highlevel_edu": {
+      "count": 500,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 500
+      }
+    },
+    "highlevel_omni": {
+      "count": 498,
+      "avg_score": 0.5080321285140562,
+      "pass_rate": 0.5080321285140562,
+      "judge_result_distribution": {
+        "fail": 245,
+        "pass": 253
+      }
+    },
+    "mmlu_pro": {
+      "count": 22,
+      "avg_score": 0.6818181818181818,
+      "pass_rate": 0.6818181818181818,
+      "judge_result_distribution": {
+        "pass": 15,
+        "fail": 7
+      }
+    },
+    "ceval": {
+      "count": 11,
+      "avg_score": 0.8181818181818182,
+      "pass_rate": 0.8181818181818182,
+      "judge_result_distribution": {
+        "pass": 9,
+        "fail": 2
+      }
+    },
+    "ifeval": {
+      "count": 200,
+      "avg_score": 0.795,
+      "pass_rate": 0.795,
+      "judge_result_distribution": {
+        "pass": 159,
+        "fail": 41
+      }
+    },
+    "math_500": {
+      "count": 200,
+      "avg_score": 0.445,
+      "pass_rate": 0.445,
+      "judge_result_distribution": {
+        "pass": 89,
+        "fail": 111
+      }
+    },
+    "aime24": {
+      "count": 30,
+      "avg_score": 0.0,
+      "pass_rate": 0.0,
+      "judge_result_distribution": {
+        "fail": 30
+      }
+    },
+    "aime25": {
+      "count": 30,
+      "avg_score": 0.0,
+      "pass_rate": 0.0,
+      "judge_result_distribution": {
+        "fail": 30
+      }
+    },
+    "aime26": {
+      "count": 30,
+      "avg_score": 0.0,
+      "pass_rate": 0.0,
+      "judge_result_distribution": {
+        "fail": 30
+      }
+    },
+    "gsm8k": {
+      "count": 3,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 3
+      }
+    }
+  },
+  "by_subset": {
+    "安全可信 | 通用-应拒答": {
+      "count": 250,
+      "avg_score": 0.092,
+      "pass_rate": 0.092,
+      "judge_result_distribution": {
+        "fail": 227,
+        "pass": 23
+      }
+    },
+    "安全可信 | 通用-引导回答": {
+      "count": 250,
+      "avg_score": 0.128,
+      "pass_rate": 0.128,
+      "judge_result_distribution": {
+        "fail": 218,
+        "guide": 32
+      }
+    },
+    "安全可信 | 通用-应回答": {
+      "count": 250,
+      "avg_score": 0.9,
+      "pass_rate": 0.9,
+      "judge_result_distribution": {
+        "answer": 225,
+        "fail": 25
+      }
+    },
+    "安全可信 | 教育-教学安全": {
+      "count": 250,
+      "avg_score": 0.44401904761904765,
+      "pass_rate": 0.248,
+      "judge_result_distribution": {
+        "pass": 22,
+        "fail": 128,
+        "unsafe": 60,
+        "safe": 40
+      }
+    },
+    "高阶育人 | edu": {
+      "count": 500,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 500
+      }
+    },
+    "高阶育人 | omni": {
+      "count": 498,
+      "avg_score": 0.5080321285140562,
+      "pass_rate": 0.5080321285140562,
+      "judge_result_distribution": {
+        "fail": 245,
+        "pass": 253
+      }
+    },
+    "通用模型 | mmlu_pro": {
+      "count": 22,
+      "avg_score": 0.6818181818181818,
+      "pass_rate": 0.6818181818181818,
+      "judge_result_distribution": {
+        "pass": 15,
+        "fail": 7
+      }
+    },
+    "通用模型 | ceval": {
+      "count": 11,
+      "avg_score": 0.8181818181818182,
+      "pass_rate": 0.8181818181818182,
+      "judge_result_distribution": {
+        "pass": 9,
+        "fail": 2
+      }
+    },
+    "通用模型 | ifeval": {
+      "count": 200,
+      "avg_score": 0.795,
+      "pass_rate": 0.795,
+      "judge_result_distribution": {
+        "pass": 159,
+        "fail": 41
+      }
+    },
+    "通用模型 | math_500": {
+      "count": 200,
+      "avg_score": 0.445,
+      "pass_rate": 0.445,
+      "judge_result_distribution": {
+        "pass": 89,
+        "fail": 111
+      }
+    },
+    "通用模型 | aime24": {
+      "count": 30,
+      "avg_score": 0.0,
+      "pass_rate": 0.0,
+      "judge_result_distribution": {
+        "fail": 30
+      }
+    },
+    "通用模型 | aime25": {
+      "count": 30,
+      "avg_score": 0.0,
+      "pass_rate": 0.0,
+      "judge_result_distribution": {
+        "fail": 30
+      }
+    },
+    "通用模型 | aime26": {
+      "count": 30,
+      "avg_score": 0.0,
+      "pass_rate": 0.0,
+      "judge_result_distribution": {
+        "fail": 30
+      }
+    },
+    "通用模型 | gsm8k": {
+      "count": 3,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 3
+      }
+    }
+  },
+  "by_dimension": {
+    "None": {
+      "count": 1500,
+      "avg_score": 0.5940031746031746,
+      "pass_rate": 0.5613333333333334,
+      "judge_result_distribution": {
+        "fail": 598,
+        "pass": 545,
+        "guide": 32,
+        "answer": 225,
+        "unsafe": 60,
+        "safe": 40
+      }
+    },
+    "责任感与担当": {
+      "count": 32,
+      "avg_score": 0.40625,
+      "pass_rate": 0.40625,
+      "judge_result_distribution": {
+        "fail": 19,
+        "pass": 13
+      }
+    },
+    "正直与诚信": {
+      "count": 32,
+      "avg_score": 0.625,
+      "pass_rate": 0.625,
+      "judge_result_distribution": {
+        "pass": 20,
+        "fail": 12
+      }
+    },
+    "同理心与共情": {
+      "count": 30,
+      "avg_score": 0.4666666666666667,
+      "pass_rate": 0.4666666666666667,
+      "judge_result_distribution": {
+        "pass": 14,
+        "fail": 16
+      }
+    },
+    "社会责任感": {
+      "count": 31,
+      "avg_score": 0.5806451612903226,
+      "pass_rate": 0.5806451612903226,
+      "judge_result_distribution": {
+        "pass": 18,
+        "fail": 13
+      }
+    },
+    "团队协作能力": {
+      "count": 31,
+      "avg_score": 0.4838709677419355,
+      "pass_rate": 0.4838709677419355,
+      "judge_result_distribution": {
+        "pass": 15,
+        "fail": 16
+      }
+    },
+    "有效沟通能力": {
+      "count": 31,
+      "avg_score": 0.4838709677419355,
+      "pass_rate": 0.4838709677419355,
+      "judge_result_distribution": {
+        "pass": 15,
+        "fail": 16
+      }
+    },
+    "启发式教学": {
+      "count": 32,
+      "avg_score": 0.5,
+      "pass_rate": 0.5,
+      "judge_result_distribution": {
+        "fail": 16,
+        "pass": 16
+      }
+    },
+    "批判性思维": {
+      "count": 30,
+      "avg_score": 0.43333333333333335,
+      "pass_rate": 0.43333333333333335,
+      "judge_result_distribution": {
+        "fail": 17,
+        "pass": 13
+      }
+    },
+    "知识迁移能力": {
+      "count": 31,
+      "avg_score": 0.3225806451612903,
+      "pass_rate": 0.3225806451612903,
+      "judge_result_distribution": {
+        "pass": 10,
+        "fail": 21
+      }
+    },
+    "创新与创造力": {
+      "count": 31,
+      "avg_score": 0.6774193548387096,
+      "pass_rate": 0.6774193548387096,
+      "judge_result_distribution": {
+        "pass": 21,
+        "fail": 10
+      }
+    },
+    "问题解决能力": {
+      "count": 31,
+      "avg_score": 0.5161290322580645,
+      "pass_rate": 0.5161290322580645,
+      "judge_result_distribution": {
+        "pass": 16,
+        "fail": 15
+      }
+    },
+    "情绪调控能力": {
+      "count": 32,
+      "avg_score": 0.5,
+      "pass_rate": 0.5,
+      "judge_result_distribution": {
+        "pass": 16,
+        "fail": 16
+      }
+    },
+    "元认知能力": {
+      "count": 31,
+      "avg_score": 0.5483870967741935,
+      "pass_rate": 0.5483870967741935,
+      "judge_result_distribution": {
+        "pass": 17,
+        "fail": 14
+      }
+    },
+    "心理韧性与抗挫力": {
+      "count": 31,
+      "avg_score": 0.5483870967741935,
+      "pass_rate": 0.5483870967741935,
+      "judge_result_distribution": {
+        "pass": 17,
+        "fail": 14
+      }
+    },
+    "自信心与自我效能感": {
+      "count": 31,
+      "avg_score": 0.45161290322580644,
+      "pass_rate": 0.45161290322580644,
+      "judge_result_distribution": {
+        "fail": 17,
+        "pass": 14
+      }
+    },
+    "成长型思维": {
+      "count": 31,
+      "avg_score": 0.5806451612903226,
+      "pass_rate": 0.5806451612903226,
+      "judge_result_distribution": {
+        "pass": 18,
+        "fail": 13
+      }
+    },
+    "law": {
+      "count": 13,
+      "avg_score": 0.46153846153846156,
+      "pass_rate": 0.46153846153846156,
+      "judge_result_distribution": {
+        "pass": 6,
+        "fail": 7
+      }
+    },
+    "history": {
+      "count": 4,
+      "avg_score": 0.75,
+      "pass_rate": 0.75,
+      "judge_result_distribution": {
+        "pass": 3,
+        "fail": 1
+      }
+    },
+    "physics": {
+      "count": 3,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 3
+      }
+    },
+    "biology": {
+      "count": 1,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 1
+      }
+    },
+    "business": {
+      "count": 1,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 1
+      }
+    },
+    "psychology": {
+      "count": 1,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 1
+      }
+    },
+    "other": {
+      "count": 1,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 1
+      }
+    },
+    "marxism": {
+      "count": 4,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 4
+      }
+    },
+    "high_school_chinese": {
+      "count": 4,
+      "avg_score": 0.75,
+      "pass_rate": 0.75,
+      "judge_result_distribution": {
+        "pass": 3,
+        "fail": 1
+      }
+    },
+    "default": {
+      "count": 293,
+      "avg_score": 0.552901023890785,
+      "pass_rate": 0.552901023890785,
+      "judge_result_distribution": {
+        "pass": 162,
+        "fail": 131
+      }
+    },
+    "clinical_medicine": {
+      "count": 1,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 1
+      }
+    },
+    "Level 2": {
+      "count": 40,
+      "avg_score": 0.525,
+      "pass_rate": 0.525,
+      "judge_result_distribution": {
+        "pass": 21,
+        "fail": 19
+      }
+    },
+    "Level 3": {
+      "count": 40,
+      "avg_score": 0.5,
+      "pass_rate": 0.5,
+      "judge_result_distribution": {
+        "pass": 20,
+        "fail": 20
+      }
+    },
+    "Level 1": {
+      "count": 40,
+      "avg_score": 0.65,
+      "pass_rate": 0.65,
+      "judge_result_distribution": {
+        "pass": 26,
+        "fail": 14
+      }
+    },
+    "Level 4": {
+      "count": 40,
+      "avg_score": 0.375,
+      "pass_rate": 0.375,
+      "judge_result_distribution": {
+        "pass": 15,
+        "fail": 25
+      }
+    },
+    "Level 5": {
+      "count": 40,
+      "avg_score": 0.175,
+      "pass_rate": 0.175,
+      "judge_result_distribution": {
+        "fail": 33,
+        "pass": 7
+      }
+    }
+  },
+  "by_scene": {
+    "AG": {
+      "count": 56,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 56
+      }
+    },
+    "EC": {
+      "count": 56,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 56
+      }
+    },
+    "Q&A": {
+      "count": 55,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 55
+      }
+    },
+    "ES": {
+      "count": 55,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 55
+      }
+    },
+    "IP": {
+      "count": 56,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 56
+      }
+    },
+    "PLS": {
+      "count": 56,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 56
+      }
+    },
+    "PCC": {
+      "count": 56,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 56
+      }
+    },
+    "QG": {
+      "count": 55,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 55
+      }
+    },
+    "TMG": {
+      "count": 55,
+      "avg_score": 1.0,
+      "pass_rate": 1.0,
+      "judge_result_distribution": {
+        "pass": 55
+      }
+    }
+  },
+  "failure_examples": [
+    {
+      "sample_id": "高阶育人-omni_jsonl-83380bddb34ef7de",
+      "source_file": "高阶育人-omni.jsonl",
+      "module": "高阶育人",
+      "subset": "omni",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T12:57:27.141527Z",
+      "metadata": {
+        "dimension": "正直与诚信"
+      }
+    },
+    {
+      "sample_id": "高阶育人-omni_jsonl-c4d10ddd6653cb88",
+      "source_file": "高阶育人-omni.jsonl",
+      "module": "高阶育人",
+      "subset": "omni",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T12:57:49.892206Z",
+      "metadata": {
+        "dimension": "同理心与共情"
+      }
+    },
+    {
+      "sample_id": "高阶育人-omni_jsonl-7d3db9495628f724",
+      "source_file": "高阶育人-omni.jsonl",
+      "module": "高阶育人",
+      "subset": "omni",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T12:58:01.371911Z",
+      "metadata": {
+        "dimension": "社会责任感"
+      }
+    },
+    {
+      "sample_id": "高阶育人-omni_jsonl-37afbc4db6021ded",
+      "source_file": "高阶育人-omni.jsonl",
+      "module": "高阶育人",
+      "subset": "omni",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T12:58:02.988715Z",
+      "metadata": {
+        "dimension": "同理心与共情"
+      }
+    },
+    {
+      "sample_id": "高阶育人-omni_jsonl-94c5509f778300c8",
+      "source_file": "高阶育人-omni.jsonl",
+      "module": "高阶育人",
+      "subset": "omni",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T12:58:29.080844Z",
+      "metadata": {
+        "dimension": "社会责任感"
+      }
+    },
+    {
+      "sample_id": "高阶育人-omni_jsonl-a8b5533e25f8fdd6",
+      "source_file": "高阶育人-omni.jsonl",
+      "module": "高阶育人",
+      "subset": "omni",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T12:59:04.525243Z",
+      "metadata": {
+        "dimension": "团队协作能力"
+      }
+    },
+    {
+      "sample_id": "高阶育人-omni_jsonl-b4714bb706fb2b62",
+      "source_file": "高阶育人-omni.jsonl",
+      "module": "高阶育人",
+      "subset": "omni",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T12:59:48.617327Z",
+      "metadata": {
+        "dimension": "有效沟通能力"
+      }
+    },
+    {
+      "sample_id": "高阶育人-omni_jsonl-ab068f7147d25977",
+      "source_file": "高阶育人-omni.jsonl",
+      "module": "高阶育人",
+      "subset": "omni",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T13:00:17.052729Z",
+      "metadata": {
+        "dimension": "启发式教学"
+      }
+    },
+    {
+      "sample_id": "高阶育人-omni_jsonl-529fe7340a5260d4",
+      "source_file": "高阶育人-omni.jsonl",
+      "module": "高阶育人",
+      "subset": "omni",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T13:00:40.041179Z",
+      "metadata": {
+        "dimension": "批判性思维"
+      }
+    },
+    {
+      "sample_id": "高阶育人-omni_jsonl-36c3abbbf5f754f2",
+      "source_file": "高阶育人-omni.jsonl",
+      "module": "高阶育人",
+      "subset": "omni",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T13:01:40.006296Z",
+      "metadata": {
+        "dimension": "知识迁移能力"
+      }
+    },
+    {
+      "sample_id": "高阶育人-omni_jsonl-2befa771cfe77304",
+      "source_file": "高阶育人-omni.jsonl",
+      "module": "高阶育人",
+      "subset": "omni",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T13:02:46.488274Z",
+      "metadata": {
+        "dimension": "创新与创造力"
+      }
+    },
+    {
+      "sample_id": "mmlu_pro_sampled_jsonl-4",
+      "source_file": "mmlu_pro_sampled.jsonl",
+      "module": "通用模型",
+      "subset": "mmlu_pro",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T13:06:20.816963Z",
+      "metadata": {
+        "dimension": "law"
+      }
+    },
+    {
+      "sample_id": "mmlu_pro_sampled_jsonl-7",
+      "source_file": "mmlu_pro_sampled.jsonl",
+      "module": "通用模型",
+      "subset": "mmlu_pro",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T13:06:29.923453Z",
+      "metadata": {
+        "dimension": "law"
+      }
+    },
+    {
+      "sample_id": "mmlu_pro_sampled_jsonl-9",
+      "source_file": "mmlu_pro_sampled.jsonl",
+      "module": "通用模型",
+      "subset": "mmlu_pro",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 3,
+      "error_type": "ResponseFormatError",
+      "error_message": "Model response does not follow the required answer format.",
+      "timestamp": "2026-04-24T13:06:33.992374Z",
+      "metadata": {
+        "dimension": "law"
+      }
+    },
+    {
+      "sample_id": "ifeval_sampled_jsonl-4",
+      "source_file": "ifeval_sampled.jsonl",
+      "module": "通用模型",
+      "subset": "ifeval",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 0,
+      "error_type": "ModuleNotFoundError",
+      "error_message": "No module named 'langdetect'",
+      "timestamp": "2026-04-24T13:07:27.533005Z",
+      "metadata": {
+        "dimension": "default"
+      }
+    },
+    {
+      "sample_id": "ifeval_sampled_jsonl-8",
+      "source_file": "ifeval_sampled.jsonl",
+      "module": "通用模型",
+      "subset": "ifeval",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 0,
+      "error_type": "ModuleNotFoundError",
+      "error_message": "No module named 'langdetect'",
+      "timestamp": "2026-04-24T13:07:36.725865Z",
+      "metadata": {
+        "dimension": "default"
+      }
+    },
+    {
+      "sample_id": "ifeval_sampled_jsonl-6",
+      "source_file": "ifeval_sampled.jsonl",
+      "module": "通用模型",
+      "subset": "ifeval",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 0,
+      "error_type": "ModuleNotFoundError",
+      "error_message": "No module named 'langdetect'",
+      "timestamp": "2026-04-24T13:07:40.895050Z",
+      "metadata": {
+        "dimension": "default"
+      }
+    },
+    {
+      "sample_id": "ifeval_sampled_jsonl-7",
+      "source_file": "ifeval_sampled.jsonl",
+      "module": "通用模型",
+      "subset": "ifeval",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 0,
+      "error_type": "LookupError",
+      "error_message": "\n**********************************************************************\n  Resource \u001b[93mpunkt_tab\u001b[0m not found.\n  Please use the NLTK Downloader to obtain the resource:\n\n  \u001b[31m>>> import nltk\n  >>> nltk.download('punkt_tab')\n  \u001b[0m\n  For more information see: https://www.nltk.org/data.html\n\n  Attempted to load \u001b[93mtokenizers/punkt_tab/english/\u001b[0m\n\n  Searched in:\n    - 'C:\\\\Users\\\\Yilin Jiang/nltk_data'\n    - 'D:\\\\software\\\\Anaconda\\\\nltk_data'\n    - 'D:\\\\software\\\\Anaconda\\\\share\\\\nltk_data'\n    - 'D:\\\\software\\\\Anaconda\\\\lib\\\\nltk_data'\n    - 'C:\\\\Users\\\\Yilin Jiang\\\\AppData\\\\Roaming\\\\nltk_data'\n    - 'C:\\\\nltk_data'\n    - 'D:\\\\nltk_data'\n    - 'E:\\\\nltk_data'\n**********************************************************************\n",
+      "timestamp": "2026-04-24T13:07:43.010753Z",
+      "metadata": {
+        "dimension": "default"
+      }
+    },
+    {
+      "sample_id": "ifeval_sampled_jsonl-19",
+      "source_file": "ifeval_sampled.jsonl",
+      "module": "通用模型",
+      "subset": "ifeval",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 0,
+      "error_type": "ModuleNotFoundError",
+      "error_message": "No module named 'langdetect'",
+      "timestamp": "2026-04-24T13:07:55.628644Z",
+      "metadata": {
+        "dimension": "default"
+      }
+    },
+    {
+      "sample_id": "ifeval_sampled_jsonl-13",
+      "source_file": "ifeval_sampled.jsonl",
+      "module": "通用模型",
+      "subset": "ifeval",
+      "provider_name": "openai_compatible",
+      "model_id": "innospark-235b",
+      "retry_count": 0,
+      "error_type": "ModuleNotFoundError",
+      "error_message": "No module named 'langdetect'",
+      "timestamp": "2026-04-24T13:07:57.143891Z",
+      "metadata": {
+        "dimension": "default"
+      }
+    }
+  ]
+}

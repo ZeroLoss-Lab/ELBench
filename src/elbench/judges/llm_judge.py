@@ -22,7 +22,7 @@ class LLMJudge(BaseJudge):
             request=GenerationRequest(
                 prompt=prompt,
                 temperature=0,
-                max_tokens=512,
+                max_tokens=self._judge_max_tokens(),
                 provider_kwargs={},
             ),
         )
@@ -68,6 +68,12 @@ class LLMJudge(BaseJudge):
         if model_id not in self._project_config.models:
             raise KeyError(f"Unknown judge model_id={model_id!r}")
         return model_id
+
+    def _judge_max_tokens(self) -> int:
+        model_config = self._project_config.models[self._judge_model_id()]
+        if model_config.max_tokens is None:
+            return 512
+        return min(512, model_config.max_tokens)
 
 
 def _coerce_score(value) -> float:

@@ -40,17 +40,53 @@ def extract_single_choice_answer(
         return None
 
     valid_pattern = "".join(re.escape(letter) for letter in valid_letters)
-    last_line = lines[-1]
+    candidate_lines = [_normalize_choice_line(line) for line in lines[-3:]]
+    normalized_prefixes = [_normalize_choice_line(prefix) for prefix in answer_prefixes if prefix]
 
-    for prefix in answer_prefixes:
-        match = re.fullmatch(
-            rf"{re.escape(prefix)}\s*[:：]\s*\(?\s*([{valid_pattern}])\s*\)?[.。]?",
-            last_line,
-            flags=re.I,
-        )
-        if match:
-            return match.group(1).upper()
+    for line in reversed(candidate_lines):
+        if not line:
+            continue
+        for prefix in normalized_prefixes:
+            if not prefix:
+                continue
+            match = re.fullmatch(
+                rf"{re.escape(prefix)}\s*[:：]?\s*[\[\(（【]?\s*([{valid_pattern}])\s*[\]\)）】]?\s*[.。!！?？]*",
+                line,
+                flags=re.I,
+            )
+            if match:
+                return match.group(1).upper()
+
+    last_line = candidate_lines[-1]
+    fallback = re.fullmatch(
+        rf"[\[\(（【]?\s*([{valid_pattern}])\s*[\]\)）】]?\s*[.。!！?？]*",
+        last_line,
+        flags=re.I,
+    )
+    if fallback:
+        return fallback.group(1).upper()
     return None
+
+
+def _normalize_choice_line(text: str) -> str:
+    normalized = str(text).translate(
+        str.maketrans(
+            {
+                "：": ":",
+                "（": "(",
+                "）": ")",
+                "【": "[",
+                "】": "]",
+                "「": "[",
+                "」": "]",
+                "『": "[",
+                "』": "]",
+            }
+        )
+    )
+    normalized = re.sub(r"[*_`#>\-]+", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized.strip()
 
 
 def parse_score_value(value: Any) -> tuple[float | None, float | None]:

@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Callable, Optional, Tuple, Awaitable
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from elbench.basic_education_runtime.entity import AgentConfig
-from elbench.basic_education_runtime.utils import replace_prompt, remove_think
+from elbench.basic_education_runtime.utils import content_to_text, replace_prompt, remove_think
 from elbench.basic_education_runtime.config import CONFIG
 
 import copy
@@ -36,7 +36,7 @@ def _init_agent_from_dict(
         else:
             n_m = []
             for item in state["messages"]:
-                content = remove_think(item.content)
+                content = content_to_text(remove_think(item.content))
                 if item.name == agent_name:
                     item = AIMessage(content=content, type="ai")  # type: ignore
                 else:

@@ -58,10 +58,64 @@ class ResponseFormatSpec:
     def build_reminder(self, response_text: str | None) -> str:
         preview = (response_text or "").strip()
         preview = re.sub(r"\s+", " ", preview)[:200]
+        if not preview:
+            return (
+                "Your previous response was empty or unparsable. "
+                f"Reply again and output only the final answer line. {self.instruction} "
+                "Do not leave the answer blank. If unsure, provide your best guess in the required final line."
+            ).strip()
         return self.reminder_template.format(
             expected_format=self.instruction,
             response_preview=preview,
         ).strip()
+
+
+def should_force_concise_retry(response: ModelResponse | None) -> bool:
+    if response is None:
+        return False
+    if (response.text or "").strip():
+        return False
+
+    payload = response.raw_payload if isinstance(response.raw_payload, dict) else {}
+    finish_reason = _first_choice_finish_reason(payload)
+    if finish_reason != "length":
+        return False
+
+    usage = response.usage if isinstance(response.usage, dict) else {}
+    completion_tokens = _as_int(usage.get("completion_tokens"))
+    reasoning_tokens = _as_int((usage.get("completion_tokens_details") or {}).get("reasoning_tokens"))
+    return reasoning_tokens > 0 and completion_tokens >= 512
+
+
+def build_retry_followup(
+    spec: ResponseFormatSpec | None,
+    response: ModelResponse | None,
+) -> dict[str, Any]:
+    response_text = response.text if response is not None else ""
+    if spec is None:
+        return {
+            "assistant_content": response_text,
+            "user_reminder": "",
+            "retry_reason": "format_invalid",
+            "max_tokens": None,
+        }
+    if should_force_concise_retry(response):
+        return {
+            "assistant_content": None,
+            "user_reminder": (
+                "Your previous response used up the output budget before giving the final answer. "
+                "Do not include any reasoning, explanation, or thinking. "
+                f"Reply with exactly one final answer line only. {spec.instruction}"
+            ).strip(),
+            "retry_reason": "format_empty_after_reasoning",
+            "max_tokens": 64,
+        }
+    return {
+        "assistant_content": response_text,
+        "user_reminder": spec.build_reminder(response_text),
+        "retry_reason": "format_invalid",
+        "max_tokens": None,
+    }
 
 
 def get_response_format_spec(sample: Sample) -> ResponseFormatSpec | None:
@@ -71,7 +125,8 @@ def get_response_format_spec(sample: Sample) -> ResponseFormatSpec | None:
             instruction="The last line must be exactly: ANSWER: [LETTER], where [LETTER] is a valid option letter.",
             reminder_template=(
                 "Your previous response did not follow the required answer format. "
-                "Reply again. The last line must be exactly: ANSWER: [LETTER]."
+                "Reply again. If you include reasoning, still end with exactly one final line: ANSWER: [LETTER]. "
+                "Do not add any extra text after that final answer line."
             ),
             valid_letters=_choice_letters_from_sample(sample),
             answer_prefixes=["ANSWER", "FINAL ANSWER"],
@@ -116,6 +171,15 @@ def attach_format_metadata(response: ModelResponse, spec: ResponseFormatSpec | N
     if spec is None:
         response.format_valid = None
         return response
+    if str(response.error or "").strip().lower() in {"content_filter", "invalid_prompt"}:
+        response.format_valid = False
+        response.format_metadata = {
+            "format_name": spec.name,
+            "expected_format": spec.instruction,
+            "blocked_by_upstream_filter": True,
+            "error": response.error,
+        }
+        return response
     metadata = spec.validate(response.text)
     response.format_valid = True
     response.format_metadata = metadata
@@ -127,3 +191,21 @@ def _choice_letters_from_sample(sample: Sample) -> list[str]:
     if isinstance(choices, list) and choices:
         return [chr(65 + index) for index in range(len(choices))]
     return list("ABCDEFGHIJ")
+
+
+def _first_choice_finish_reason(payload: dict[str, Any]) -> str:
+    choices = payload.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return ""
+    first = choices[0]
+    if not isinstance(first, dict):
+        return ""
+    value = first.get("finish_reason")
+    return "" if value in (None, "") else str(value).strip().lower()
+
+
+def _as_int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0

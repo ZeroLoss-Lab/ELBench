@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Dict, Any
 
-from langchain.globals import set_debug
+from elbench.basic_education_runtime.langchain_compat import set_debug
 from tenacity import RetryError
 
 
@@ -72,14 +72,14 @@ def eval_logic(avg: bool):
         )
         # csv_gbk = open(eval_path / f"{CONFIG.evaluation.name}-gbk.csv", "w", encoding="gbk")
 
+        metric_fields = _metric_fields_from_evals(evals)
+        if not metric_fields:
+            csv_utf8.write("task_id\n")
+            csv_utf8.close()
+            raise RuntimeError("No successful evaluation outputs were produced.")
+
         title = ["task_id"]
-        # title = []
-        e = []
-        count = 0
-        while len(e) == 0 and count < len(evals):
-            e = list(evals[count].keys())
-            count += 1
-        for field in e:
+        for field in metric_fields:
             title.append(field)
 
         if avg:
@@ -90,22 +90,24 @@ def eval_logic(avg: bool):
 
         if avg:
             row = len(task_ids) + 1
-            col = len(title) - 1
+            metric_count = len(metric_fields)
+            col = metric_count + 1
 
             matrix = [[0.0] * col for _ in range(row)]
 
             # 缁熻鏁版嵁骞惰绠楁瘡琛屽钩鍧囧€?
             for idx, (task_id, eval) in enumerate(zip(task_ids, evals)):
                 contents = [task_id]
-                for sub_idx, (f, c) in enumerate(eval.items()):
-                    v = float(c)
+                for sub_idx, field in enumerate(metric_fields):
+                    raw_value = eval.get(field, 0)
+                    v = float(raw_value)
                     matrix[idx][sub_idx] = v
-                    contents.append(f"{c}")
+                    contents.append(f"{raw_value}")
                 sum = 0
                 for i in matrix[idx][:-1]:
                     sum += i
                 # 鏈€鍚庝竴鍒楃殑鏁板瓧 = 姣忓垪鐨勫拰闄や互鍒楁暟-1
-                matrix[idx][col - 1] = sum / (col - 1)
+                matrix[idx][col - 1] = sum / metric_count
                 contents.append(f"{matrix[idx][col - 1]:.2f}")
                 csv_utf8.write(",".join(contents) + "\n")
                 # csv_gbk.write(",".join(contents) + "\n")
@@ -126,8 +128,8 @@ def eval_logic(avg: bool):
         else:
             for task_id, eval in zip(task_ids, evals):
                 contents = [task_id]
-                for f, c in eval.items():
-                    contents.append(f"{c}")
+                for field in metric_fields:
+                    contents.append(f"{eval.get(field, 0)}")
                 csv_utf8.write(",".join(contents) + "\n")
                 # csv_gbk.write(",".join(contents) + "\n")
 
@@ -135,4 +137,11 @@ def eval_logic(avg: bool):
         # csv_gbk.close()
 
     asyncio.run(main())
+
+
+def _metric_fields_from_evals(evals: list[Dict[str, Any]]) -> list[str]:
+    for item in evals:
+        if item:
+            return list(item.keys())
+    return []
 

@@ -79,6 +79,7 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
         self.assertIn("J) Robbery, because he physically took the purse from the woman's presence.", sample.prompt)
         self.assertIn("ANSWER: [LETTER]", sample.prompt)
         self.assertEqual((sample.reference or {}).get("target"), "D")
+        self.assertEqual(sample.sample_id, "mmlu_pro_sampled_jsonl-law-0")
 
     def test_ceval_sampled_uses_zero_shot_prompt(self) -> None:
         config = load_project_config(Path("configs"))
@@ -97,6 +98,29 @@ class RegistryAndLoaderSmokeTest(unittest.TestCase):
         self.assertIn("D) 运动的绝对性和静止的相对性的统一", sample.prompt)
         self.assertIn("答案：[LETTER]", sample.prompt)
         self.assertEqual((sample.reference or {}).get("target"), "D")
+        self.assertEqual(sample.sample_id, "ceval_sampled_jsonl-marxism-0")
+
+    def test_mmlu_pro_sample_ids_are_unique_across_subjects(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"mmlu_pro_sampled.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample_ids = [sample.sample_id for sample in loader.iter_samples(resolved[0])]
+
+        self.assertEqual(len(sample_ids), 196)
+        self.assertEqual(len(sample_ids), len(set(sample_ids)))
+
+    def test_ceval_sample_ids_are_unique_across_subjects(self) -> None:
+        config = load_project_config(Path("configs"))
+        registry = FileRegistry(config)
+        resolved = registry.resolve(source_files={"ceval_sampled.jsonl"})
+        self.assertEqual(len(resolved), 1)
+        loader = LoaderFactory.create(resolved[0].entry.loader_name)
+        sample_ids = [sample.sample_id for sample in loader.iter_samples(resolved[0])]
+
+        self.assertEqual(len(sample_ids), 208)
+        self.assertEqual(len(sample_ids), len(set(sample_ids)))
 
     def test_ifeval_sampled_uses_raw_prompt_and_parsed_kwargs(self) -> None:
         config = load_project_config(Path("configs"))

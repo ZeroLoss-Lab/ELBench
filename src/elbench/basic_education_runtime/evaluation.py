@@ -80,19 +80,16 @@ async def evaluate(
         data = json.loads(a["messages"][-1].content)
         return data
     elif CONFIG.evaluation.format_mode == "prompt":
-        # print(CONFIG.evaluation.format_to_json_example())
+        format_example = CONFIG.evaluation.format_to_json_example()
         agent = create_react_agent(
             model=model,
             tools=[],
             prompt=system_prompt
-            + "\n\n# NOTE锛乗n\n"
-            + "You should keep your output in the following JSON format blow, and wrap it with exactlly <START OF EVAL OUTPUT> and <END OF EVAL OUTPUT> ONLY!, no escape.\n\n".upper()
-            + f"\n\njson schema:\n\n\n{CONFIG.evaluation.format_to_json_schema()}\n\n\n"
-            + "\n\nFORMAT EXAMPLE:\n\n"
-            + "\n\n<START OF EVAL OUTPUT>\n\n"
-            # + "```json"
-            + f"{CONFIG.evaluation.format_to_json_example()}\n"
-            # + "```"
+            + "\n\nReturn exactly one JSON object wrapped with <START OF EVAL OUTPUT> and <END OF EVAL OUTPUT>."
+            + "\nDo not add markdown fences, explanations, or extra text."
+            + "\nUse the same keys and value types as this example:\n"
+            + "\n<START OF EVAL OUTPUT>\n"
+            + f"{format_example}\n"
             + "<END OF EVAL OUTPUT>",
         )
 

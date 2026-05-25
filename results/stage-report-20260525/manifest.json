@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-05-25",
+  "result_id": "stage-report-20260525",
+  "included_runs": [
+    {
+      "model_id": "gpt-5.4",
+      "run_id": "full-gpt-5.4-20260519-v2",
+      "scope": "full_scope",
+      "summary_path": "outputs/summaries/full-gpt-5.4-20260519-v2/gpt-5.4.summary.json",
+      "notes": "cleanest currently available full-scope result"
+    },
+    {
+      "model_id": "deepseek-v3.2",
+      "run_id": "fair-deepseek-v3.2-nosafety-20260520-v1",
+      "scope": "relay_no_safety",
+      "summary_path": "outputs/summaries/fair-deepseek-v3.2-nosafety-20260520-v1/deepseek-v3.2.summary.json",
+      "notes": "no-safety relay run; final cleanup still recommended."
+    },
+    {
+      "model_id": "gemini-3-flash-preview",
+      "run_id": "fair-gemini-3-flash-preview-nosafety-20260521-v1",
+      "scope": "relay_no_safety",
+      "summary_path": "outputs/summaries/fair-gemini-3-flash-preview-nosafety-20260521-v1/gemini-3-flash-preview.summary.json",
+      "notes": "no-safety relay run; contains nonzero technical failures."
+    }
+  ],
+  "excluded_runs": [
+    {
+      "model_id": "kimi-k2.6",
+      "reason": "dirty runs; missing raw/judged artifacts"
+    },
+    {
+      "model_id": "deepseek-r1-250528",
+      "reason": "dirty runs; timeouts and broken judge endpoint during probe"
+    },
+    {
+      "model_id": "doubao-seed-2-0-pro-260215",
+      "reason": "run interrupted by checkpoint write failure"
+    },
+    {
+      "model_id": "gpt-5.2-pro",
+      "reason": "quota exhaustion before completion"
+    }
+  ],
+  "generated_files": [
+    "README.md",
+    "summary_table.csv",
+    "leaderboard_full_scope.csv",
+    "leaderboard_relay_no_safety.csv",
+    "manifest.json"
+  ]
+}

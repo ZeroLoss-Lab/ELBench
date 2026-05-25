@@ -2,7 +2,7 @@
 from langchain_core.messages import BaseMessage
 from typing import Union, Sequence, Callable, Tuple, Dict
 
-from elbench.basic_education_runtime.utils import remove_think
+from elbench.basic_education_runtime.utils import content_to_text, remove_think
 
 
 def any_keyword_route(
@@ -26,24 +26,8 @@ def any_keyword_route(
         content = message.content
         if not think_as_message:
             content = remove_think(content)  # Remove think tags
-        if isinstance(content, str):
-            content = content.lower()
-            r = any(keyword in content for keyword in keywords)
-        elif isinstance(content, list):
-            content = content[-1]
-            if isinstance(content, str):
-                content = content.lower()
-                r = any(keyword in content for keyword in keywords)
-            elif isinstance(content, dict):
-                print(content)
-                raise NotImplementedError("Dictionary content not implemented")
-            else:
-                raise ValueError(
-                    f"Unsupported type for message content: {type(content)}"
-                )
-        else:
-            raise ValueError(f"Unsupported type for message content: {type(content)}")
-        return r
+        text = content_to_text(content, include_reasoning=think_as_message).lower()
+        return any(keyword in text for keyword in keywords)
 
     return (route, path_map)
 
@@ -66,25 +50,8 @@ def all_keyword_route(
         else:
             raise ValueError("No messages found, error while routing")
 
-        content = message.content
-        if isinstance(content, str):
-            content = content.lower()
-            r = all(keyword in content for keyword in keywords)
-        elif isinstance(content, list):
-            content = content[-1]
-            if isinstance(content, str):
-                content = content.lower()
-                r = all(keyword in content for keyword in keywords)
-            elif isinstance(content, dict):
-                print(content)
-                raise NotImplementedError("Dictionary content not implemented")
-            else:
-                raise ValueError(
-                    f"Unsupported type for message content: {type(content)}"
-                )
-        else:
-            raise ValueError(f"Unsupported type for message content: {type(content)}")
-        return r
+        text = content_to_text(message.content).lower()
+        return all(keyword in text for keyword in keywords)
 
     return (route, path_map)
 

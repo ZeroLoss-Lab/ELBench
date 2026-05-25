@@ -1,0 +1,4 @@
+model_id,scope,run_id,total_judged,total_failures,general_score_pct,highlevel_score_pct,safety_score_pct,basic_score_pct,stage_score_pct,included_modules,excluded_modules,notes
+gpt-5.4,full_scope,full-gpt-5.4-20260519-v2,2942,0,87.07,75.50,71.20,61.55,73.83,"general, safety, highlevel, basic_education",,cleanest currently available full-scope result
+deepseek-v3.2,relay_no_safety,fair-deepseek-v3.2-nosafety-20260520-v1,1941,3,86.06,73.27,,59.85,73.06,"general, highlevel, basic_education",safety,no-safety relay run; final cleanup still recommended.
+gemini-3-flash-preview,relay_no_safety,fair-gemini-3-flash-preview-nosafety-20260521-v1,1788,154,78.95,74.62,,61.90,71.82,"general, highlevel, basic_education",safety,no-safety relay run; contains nonzero technical failures.

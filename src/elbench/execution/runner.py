@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Iterable
@@ -18,11 +19,13 @@ from elbench.schemas.evaluation import EvalResult, FailureRecord, GenerationRequ
 from elbench.summary import build_summary
 
 from .basic_education import BasicEducationExecutor, DEFAULT_BASIC_MODULE_NAME
+from .selection import resolve_module_selection
 from .rate_limit import SlidingWindowRateLimiter
 from .response_format import (
     ResponseFormatError,
     attach_format_metadata,
     augment_prompt_for_format,
+    build_retry_followup,
     get_response_format_spec,
 )
 from .retry import is_retryable_exception, sleep_before_retry
@@ -40,6 +43,7 @@ class RunOptions:
     max_concurrency: int | None = None
     resume: bool = True
     judge_enabled: bool = True
+    progress_enabled: bool = False
 
 
 class BenchmarkRunner:
@@ -50,29 +54,19 @@ class BenchmarkRunner:
         model_config = self._get_model_config(options.model_id)
         output_paths = OutputPaths.build(self.config.app.output_root, options.run_id, options.model_id)
         logger = configure_run_logger(output_paths.log_path)
-        checkpoint = CheckpointStore(output_paths.checkpoint_path)
+        flush_interval = self.config.app.default_run.checkpoint_interval
+        checkpoint = CheckpointStore(output_paths.checkpoint_path, flush_interval=flush_interval)
         if options.resume:
             checkpoint.load()
 
-        raw_writer = JsonlWriter(output_paths.raw_path)
-        judged_writer = JsonlWriter(output_paths.judged_path)
-        failure_writer = JsonlWriter(output_paths.failures_path)
-        retry_writer = JsonlWriter(output_paths.retries_path)
+        raw_writer = JsonlWriter(output_paths.raw_path, flush_interval=flush_interval)
+        judged_writer = JsonlWriter(output_paths.judged_path, flush_interval=flush_interval)
+        failure_writer = JsonlWriter(output_paths.failures_path, flush_interval=flush_interval)
+        retry_writer = JsonlWriter(output_paths.retries_path, flush_interval=flush_interval)
 
-        requested_modules = set(options.modules) if options.modules else None
-        include_basic_education = (
-            requested_modules is not None and DEFAULT_BASIC_MODULE_NAME in requested_modules
-        )
-        if requested_modules is None:
-            standard_modules = {
-                module_name
-                for module_name, module_entry in self.config.modules.items()
-                if module_entry.enabled and module_name != DEFAULT_BASIC_MODULE_NAME
-            }
-        else:
-            standard_modules = {
-                module_name for module_name in requested_modules if module_name != DEFAULT_BASIC_MODULE_NAME
-            }
+        module_selection = resolve_module_selection(self.config, options.modules)
+        include_basic_education = module_selection.include_basic_education
+        standard_modules = set(module_selection.standard_modules)
         if include_basic_education and standard_modules and options.max_samples is not None:
             logger.warning(
                 "Mixed module run with max_samples=%s: standard modules consume the budget first; "
@@ -96,6 +90,9 @@ class BenchmarkRunner:
             )
             standard_loaded = standard_stats["loaded_samples"]
             standard_failures = standard_stats["failed_samples"]
+            standard_quota_exhausted = bool(standard_stats.get("quota_exhausted", 0))
+        else:
+            standard_quota_exhausted = False
 
         basic_stats = {
             "scenario_count": 0,
@@ -107,7 +104,9 @@ class BenchmarkRunner:
         if remaining_for_basic is not None:
             remaining_for_basic = max(0, remaining_for_basic - standard_loaded)
         if include_basic_education:
-            if remaining_for_basic == 0:
+            if standard_quota_exhausted:
+                logger.info("Skip basic education branch because the target API quota is exhausted.")
+            elif remaining_for_basic == 0:
                 logger.info("Skip basic education branch because max_samples budget is exhausted.")
             else:
                 basic_runner = BasicEducationExecutor(
@@ -134,6 +133,12 @@ class BenchmarkRunner:
                     "failed_samples": basic_result.failed_samples,
                 }
 
+        await raw_writer.flush()
+        await judged_writer.flush()
+        await failure_writer.flush()
+        await retry_writer.flush()
+        await checkpoint.flush()
+
         summary = build_summary(output_paths.judged_path, output_paths.failures_path)
         output_paths.summary_path.write_text(
             json.dumps(summary, ensure_ascii=False, indent=2),
@@ -148,6 +153,7 @@ class BenchmarkRunner:
             "failures_path": str(output_paths.failures_path),
             "standard_loaded_samples": standard_loaded,
             "standard_failed_samples": standard_failures,
+            "quota_exhausted": standard_quota_exhausted,
             "basic_education": basic_stats,
         }
 
@@ -198,7 +204,12 @@ class BenchmarkRunner:
         for _ in range(worker_count):
             await queue.put(None)
 
-        progress = {"done": 0, "failed": 0}
+        progress = {"done": 0, "failed": 0, "skipped": 0, "total": len(samples), "quota_exhausted": 0}
+        progress_reporter = _ProgressReporter(
+            enabled=options.progress_enabled,
+            label=model_config.model_id,
+            total=len(samples),
+        )
         tasks = [
             asyncio.create_task(
                 self._worker(
@@ -215,14 +226,20 @@ class BenchmarkRunner:
                     judge_router=judge_router,
                     judge_enabled=options.judge_enabled,
                     progress=progress,
+                    progress_reporter=progress_reporter,
                 )
             )
             for _ in range(worker_count)
         ]
         await asyncio.gather(*tasks)
+        progress_reporter.close()
         await client.aclose()
         await judge_router.aclose()
-        return {"loaded_samples": len(samples), "failed_samples": progress["failed"]}
+        return {
+            "loaded_samples": len(samples),
+            "failed_samples": progress["failed"],
+            "quota_exhausted": progress["quota_exhausted"],
+        }
 
     def _load_samples(
         self,
@@ -256,6 +273,7 @@ class BenchmarkRunner:
         judge_router: JudgeRouter,
         judge_enabled: bool,
         progress: dict[str, int],
+        progress_reporter: "_ProgressReporter",
     ) -> None:
         while True:
             sample = await queue.get()
@@ -263,7 +281,14 @@ class BenchmarkRunner:
                 queue.task_done()
                 return
             sample_key = self._sample_key(sample)
+            if progress.get("quota_exhausted"):
+                progress["skipped"] += 1
+                progress_reporter.update(progress)
+                queue.task_done()
+                continue
             if checkpoint.is_completed(sample_key):
+                progress["skipped"] += 1
+                progress_reporter.update(progress)
                 queue.task_done()
                 continue
             try:
@@ -301,9 +326,15 @@ class BenchmarkRunner:
                 await judged_writer.write(result.model_dump(mode="json"))
                 await checkpoint.mark_completed(sample_key)
                 progress["done"] += 1
+                progress_reporter.update(progress)
                 if progress["done"] % self.config.app.default_run.log_every_n == 0:
                     logger.info("Progress: completed=%s failed=%s", progress["done"], progress["failed"])
             except Exception as exc:  # noqa: BLE001
+                if _is_quota_exhausted_error(exc):
+                    progress["quota_exhausted"] = 1
+                    logger.error("Quota exhausted for model %s: %s", model_config.model_id, exc)
+                    progress_reporter.update(progress)
+                    continue
                 progress["failed"] += 1
                 failure = FailureRecord(
                     sample_id=sample.sample_id,
@@ -320,6 +351,7 @@ class BenchmarkRunner:
                 )
                 await failure_writer.write(failure.model_dump(mode="json"))
                 await checkpoint.mark_failed(sample_key)
+                progress_reporter.update(progress)
                 logger.exception("Sample failed: %s", sample_key)
             finally:
                 queue.task_done()
@@ -396,6 +428,7 @@ class BenchmarkRunner:
         format_spec = get_response_format_spec(sample)
         base_prompt = request.prompt
         request_messages = list(request.messages) if request.messages else [{"role": "user", "content": base_prompt}]
+        base_max_tokens = request.max_tokens
         for attempt in range(1, attempts + 1):
             estimated_tokens = self._estimate_tokens(request.prompt, request.max_tokens)
             await limiter.acquire(estimated_tokens=estimated_tokens)
@@ -412,16 +445,23 @@ class BenchmarkRunner:
                     raise
                 delay = await sleep_before_retry(retry_policy, attempt)
                 previous_response_text = ""
+                response = locals().get("response")
                 if "response" in locals():
                     maybe_response = locals()["response"]
                     if isinstance(maybe_response, ModelResponse):
                         previous_response_text = maybe_response.text or ""
-                reminder = format_spec.build_reminder(previous_response_text) if format_spec else ""
-                request_messages = [
-                    {"role": "user", "content": base_prompt},
-                    {"role": "assistant", "content": previous_response_text},
-                    {"role": "user", "content": reminder},
-                ]
+                followup = build_retry_followup(
+                    format_spec,
+                    response if isinstance(response, ModelResponse) else None,
+                )
+                request_messages = [{"role": "user", "content": base_prompt}]
+                assistant_content = followup.get("assistant_content")
+                if assistant_content:
+                    request_messages.append({"role": "assistant", "content": assistant_content})
+                user_reminder = str(followup.get("user_reminder", "") or "").strip()
+                if user_reminder:
+                    request_messages.append({"role": "user", "content": user_reminder})
+                request.max_tokens = followup.get("max_tokens") or base_max_tokens
                 await retry_writer.write(
                     {
                         "sample_id": sample.sample_id,
@@ -430,7 +470,7 @@ class BenchmarkRunner:
                         "next_delay_seconds": delay,
                         "error_type": type(exc).__name__,
                         "error_message": str(exc),
-                        "retry_reason": "format_invalid",
+                        "retry_reason": followup.get("retry_reason", "format_invalid"),
                         "format_metadata": exc.metadata,
                     }
                 )
@@ -478,4 +518,50 @@ class BenchmarkRunner:
     def _estimate_tokens(self, prompt: str, max_tokens: int | None) -> int:
         prompt_tokens = max(1, len(prompt) // 4)
         return prompt_tokens + (max_tokens or 0)
+
+
+class _ProgressReporter:
+    def __init__(self, *, enabled: bool, label: str, total: int) -> None:
+        self.enabled = enabled
+        self.label = label
+        self.total = max(1, total)
+        self._last_render = ""
+
+    def update(self, progress: dict[str, int]) -> None:
+        if not self.enabled:
+            return
+        completed = progress.get("done", 0) + progress.get("failed", 0) + progress.get("skipped", 0)
+        width = 28
+        filled = min(width, int(width * completed / self.total))
+        bar = "#" * filled + "-" * (width - filled)
+        text = (
+            f"\r{self.label} [{bar}] {completed}/{self.total} "
+            f"ok={progress.get('done', 0)} failed={progress.get('failed', 0)} "
+            f"skipped={progress.get('skipped', 0)}"
+        )
+        if progress.get("quota_exhausted"):
+            text += " quota_exhausted"
+        if text != self._last_render:
+            print(text, end="", file=sys.stderr, flush=True)
+            self._last_render = text
+
+    def close(self) -> None:
+        if self.enabled and self._last_render:
+            print(file=sys.stderr)
+
+
+def _is_quota_exhausted_error(exc: BaseException) -> bool:
+    text = str(exc).lower()
+    markers = (
+        "insufficient quota",
+        "quota exceeded",
+        "quota_exceeded",
+        "balance",
+        "insufficient balance",
+        "\u4f59\u989d",
+        "\u989d\u5ea6",
+        "credit",
+        "payment required",
+    )
+    return any(marker in text for marker in markers)
 

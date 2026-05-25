@@ -1,5 +1,5 @@
 ﻿import click
-from langchain.globals import set_debug
+from elbench.basic_education_runtime.langchain_compat import set_debug
 
 
 @click.command(help="Draw Agent workflow.")

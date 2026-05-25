@@ -28,14 +28,20 @@ class MMLUProJsonlLoader(BaseLoader):
             target = self._string_or_none(record.get("target"))
             choices = self._choices(record.get("choices"))
             metadata = self._metadata(record, raw_record.row_index)
+            dimension = self._dimension(record, metadata)
             yield Sample(
-                sample_id=self._sample_id(item.entry.canonical_name, record, raw_record.row_index),
+                sample_id=self._sample_id(
+                    item.entry.canonical_name,
+                    record,
+                    raw_record.row_index,
+                    namespace=dimension,
+                ),
                 source_file=item.entry.canonical_name,
                 source_path=str(item.path),
                 module=item.entry.module,
                 subset=item.entry.subset,
                 task=item.entry.task,
-                dimension=self._dimension(record, metadata),
+                dimension=dimension,
                 prompt=self._build_zero_shot_prompt(record, choices, item.entry.task),
                 reference={"target": target},
                 metadata=metadata,
@@ -105,11 +111,21 @@ class MMLUProJsonlLoader(BaseLoader):
             or self._string_or_none(metadata.get("id"))
         )
 
-    def _sample_id(self, canonical_name: str, record: dict[str, Any], row_index: int) -> str:
+    def _sample_id(
+        self,
+        canonical_name: str,
+        record: dict[str, Any],
+        row_index: int,
+        namespace: str | None = None,
+    ) -> str:
         value = record.get("id")
         if value in (None, ""):
             value = row_index
-        return f"{canonical_name.replace('.', '_')}-{value}"
+        value_part = self._slug_component(value)
+        namespace_part = self._slug_component(namespace)
+        if namespace_part:
+            return f"{canonical_name.replace('.', '_')}-{namespace_part}-{value_part}"
+        return f"{canonical_name.replace('.', '_')}-{value_part}"
 
     def _choices(self, value: Any) -> list[str]:
         if not isinstance(value, list) or not value:
@@ -120,6 +136,12 @@ class MMLUProJsonlLoader(BaseLoader):
         if value in (None, ""):
             return None
         return str(value)
+
+    def _slug_component(self, value: Any) -> str:
+        if value in (None, ""):
+            return ""
+        text = re.sub(r"[^\w]+", "_", str(value)).strip("_")
+        return text or str(value)
 
     def expected_answer_from_sample(self, sample: Sample) -> str | None:
         reference = sample.reference or {}

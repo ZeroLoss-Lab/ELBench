@@ -23,7 +23,10 @@ def _group_key(record: dict[str, Any], keys: tuple[str, ...]) -> str:
 
 def build_summary(judged_path: Path, failures_path: Path) -> dict[str, Any]:
     judged_records = _load_jsonl(judged_path)
-    failure_records = _load_jsonl(failures_path)
+    failure_records = _active_failures(
+        failures=_load_jsonl(failures_path),
+        judged=judged_records,
+    )
     scene_records = []
     for record in judged_records:
         metadata = record.get("metadata")
@@ -62,3 +65,23 @@ def build_summary(judged_path: Path, failures_path: Path) -> dict[str, Any]:
         "by_scene": summarize(scene_records, ("scene",)),
         "failure_examples": failure_records[:20],
     }
+
+
+def _active_failures(
+    *,
+    failures: list[dict[str, Any]],
+    judged: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    successful_keys = {_record_key(record) for record in judged}
+    active: dict[tuple[str, str], dict[str, Any]] = {}
+    for failure in failures:
+        key = _record_key(failure)
+        if key in successful_keys:
+            active.pop(key, None)
+            continue
+        active[key] = failure
+    return list(active.values())
+
+
+def _record_key(record: dict[str, Any]) -> tuple[str, str]:
+    return (str(record.get("source_file") or ""), str(record.get("sample_id") or ""))

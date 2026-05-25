@@ -2,6 +2,7 @@ import logging
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
@@ -9,6 +10,9 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from elbench.config import load_project_config  # noqa: E402
+from elbench.basic_education_runtime.cli.eval import _metric_fields_from_evals  # noqa: E402
+from elbench.basic_education_runtime.router import any_keyword_route  # noqa: E402
+from elbench.basic_education_runtime.utils import content_to_text, remove_think  # noqa: E402
 from elbench.execution.basic_education import (  # noqa: E402
     BasicEducationExecutor,
     aggregate_numeric_score,
@@ -84,6 +88,72 @@ class BasicEducationBridgeTest(unittest.TestCase):
         self.assertEqual(payload["model"], "mock-echo")
         self.assertIsNone(payload["api_base"])
         self.assertEqual(payload["kargs"]["prefix"], "[MOCK]")
+
+    def test_guided_scenario_splits_teacher_student_and_eval_models(self) -> None:
+        project_config = load_project_config(ROOT / "configs")
+        executor = BasicEducationExecutor(
+            project_config=project_config,
+            model_config=project_config.models["gpt-5.4"],
+            logger=logging.getLogger("test-basic-education"),
+        )
+        executor.config.test_endpoint_model_id = "qwen-test"
+        scenario = next(
+            item
+            for item in executor.config.scenarios
+            if item.scenario_id == "guided_problem_solving_teaching"
+        )
+        template_data = executor._read_yaml_file(scenario.template_path)
+
+        with patch("elbench.execution.basic_education.get_api_key", return_value="test-key"):
+            rendered = executor._render_runtime_template(
+                template_data=template_data,
+                scenario=scenario,
+                memory_path=ROOT / "tmp_test_artifacts" / "basic_education_guided_memory",
+                max_samples=1,
+            )
+
+        models_section = rendered["models"]
+        self.assertEqual(models_section["teacher"]["model"], "gpt-5.4")
+        self.assertEqual(
+            models_section["teacher"]["api_base"],
+            project_config.models["gpt-5.4"].api_base,
+        )
+        self.assertEqual(models_section["stu"]["model"], project_config.models["qwen-test"].model_name)
+        self.assertEqual(
+            models_section["stu"]["api_base"],
+            project_config.models["qwen-test"].api_base,
+        )
+        self.assertEqual(models_section["eval"]["model"], project_config.models["qwen-test"].model_name)
+        self.assertEqual(models_section["stu"]["kargs"]["max_tokens"], 160)
+        self.assertEqual(models_section["eval"]["kargs"]["max_tokens"], 160)
+        self.assertEqual(rendered["globals"]["recursion_limit"], 20)
+        self.assertEqual(rendered["evaluation"]["model"], "eval")
+
+    def test_content_to_text_ignores_reasoning_only_blocks(self) -> None:
+        content = [{"type": "reasoning", "summary": [], "text": "hidden"}]
+        self.assertEqual(content_to_text(content), "")
+
+    def test_content_to_text_extracts_text_blocks(self) -> None:
+        content = [
+            {"type": "reasoning", "summary": [], "text": "hidden"},
+            {"type": "text", "text": "课堂结束 <end>"},
+        ]
+        self.assertEqual(content_to_text(remove_think(content)), "课堂结束 <end>")
+
+    def test_keyword_route_handles_openai_content_blocks(self) -> None:
+        route, _ = any_keyword_route(["<end>"], exists_to="END", else_to="student")
+        state = {
+            "messages": [
+                type("Msg", (), {"content": [{"type": "text", "text": "下课。<end>"}]})(),
+            ]
+        }
+        self.assertTrue(route(state))
+
+
+class BasicEducationEvalCliHelpersTest(unittest.TestCase):
+    def test_metric_fields_from_evals_ignores_empty_results(self) -> None:
+        self.assertEqual(_metric_fields_from_evals([{}, {}]), [])
+        self.assertEqual(_metric_fields_from_evals([{}, {"a": 1, "b": 2}]), ["a", "b"])
 
 
 if __name__ == "__main__":

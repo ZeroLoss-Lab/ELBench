@@ -1,4 +1,4 @@
-default_judge_model_id: mock.judge
+default_judge_model_id: qwen-test
 tasks:
   safety_refusal:
     mode: llm
