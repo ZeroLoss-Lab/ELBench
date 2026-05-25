@@ -41,15 +41,6 @@ RUN_SPECS = (
         excluded_modules=("safety",),
         notes=("no-safety relay run; final cleanup still recommended.",),
     ),
-    RunSpec(
-        model_id="gemini-3-flash-preview",
-        run_id="fair-gemini-3-flash-preview-nosafety-20260521-v1",
-        summary_relpath="outputs/summaries/fair-gemini-3-flash-preview-nosafety-20260521-v1/gemini-3-flash-preview.summary.json",
-        scope="relay_no_safety",
-        included_modules=("general", "highlevel", "basic_education"),
-        excluded_modules=("safety",),
-        notes=("no-safety relay run; contains nonzero technical failures.",),
-    ),
 )
 
 
@@ -261,8 +252,8 @@ def write_report(rows: list[dict[str, Any]]) -> None:
         "",
         "- This stage report includes only currently usable summaries.",
         "- `gpt-5.4` is a full-scope result.",
-        "- `deepseek-v3.2` and `gemini-3-flash-preview` are `no-safety` relay results and should only be compared within the same scope.",
-        "- Dirty or incomplete runs such as `kimi-k2.6`, `deepseek-r1-250528`, `doubao-seed-2-0-pro-260215`, and `gpt-5.2-pro` are excluded from the leaderboard.",
+        "- `deepseek-v3.2` is a `no-safety` relay result and should only be compared within the same scope.",
+        "- Dirty, incomplete, expensive, or incompatible runs such as `gemini-3-flash-preview`, `kimi-k2.6`, `deepseek-r1-250528`, `doubao-seed-2-0-pro-260215`, and `gpt-5.2-pro` are excluded from the leaderboard.",
         "",
         "## Included Runs",
         "",
@@ -408,8 +399,12 @@ def main() -> None:
                 "reason": "run interrupted by checkpoint write failure",
             },
             {
+                "model_id": "gemini-3-flash-preview",
+                "reason": "excluded from official scope because the relay repeatedly returns empty content after consuming reasoning tokens",
+            },
+            {
                 "model_id": "gpt-5.2-pro",
-                "reason": "quota exhaustion before completion",
+                "reason": "expensive GPT pro model intentionally excluded from the current campaign",
             },
         ],
         "generated_files": [
