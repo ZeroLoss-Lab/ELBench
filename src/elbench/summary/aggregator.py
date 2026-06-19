@@ -73,10 +73,14 @@ def _active_failures(
     judged: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     successful_keys = {_record_key(record) for record in judged}
+    successful_basic_scenes = _successful_basic_scene_keys(judged)
     active: dict[tuple[str, str], dict[str, Any]] = {}
     for failure in failures:
         key = _record_key(failure)
         if key in successful_keys:
+            active.pop(key, None)
+            continue
+        if _basic_scenario_failure_key(failure) in successful_basic_scenes:
             active.pop(key, None)
             continue
         active[key] = failure
@@ -85,3 +89,34 @@ def _active_failures(
 
 def _record_key(record: dict[str, Any]) -> tuple[str, str]:
     return (str(record.get("source_file") or ""), str(record.get("sample_id") or ""))
+
+
+def _successful_basic_scene_keys(judged: list[dict[str, Any]]) -> set[tuple[str, str]]:
+    keys: set[tuple[str, str]] = set()
+    for record in judged:
+        metadata = record.get("metadata")
+        if not isinstance(metadata, dict):
+            continue
+        if metadata.get("source") != "basic_education_runtime":
+            continue
+        scene = str(metadata.get("_scene") or "").strip()
+        if not scene:
+            continue
+        keys.add((str(record.get("source_file") or ""), scene))
+    return keys
+
+
+def _basic_scenario_failure_key(failure: dict[str, Any]) -> tuple[str, str] | None:
+    if str(failure.get("error_type") or "") != "BasicEducationScenarioError":
+        return None
+    metadata = failure.get("metadata")
+    scenario_id = ""
+    if isinstance(metadata, dict):
+        scenario_id = str(metadata.get("scenario_id") or "").strip()
+    if not scenario_id:
+        sample_id = str(failure.get("sample_id") or "")
+        if sample_id.endswith("-scenario"):
+            scenario_id = sample_id[: -len("-scenario")]
+    if not scenario_id:
+        return None
+    return (str(failure.get("source_file") or ""), scenario_id)

@@ -36,6 +36,8 @@ DEFAULT_BASIC_MODULE_NAME = "基本教育"
 
 DEFAULT_MULTI_TURN_RECURSION_LIMIT = 20
 
+DEFAULT_EVALUATOR_MAX_TOKENS = 1024
+
 
 class BasicEducationScenarioConfig(BaseModel):
     scenario_id: str
@@ -305,7 +307,9 @@ class BasicEducationExecutor:
         globals_section = rendered.setdefault("globals", {})
         globals_section.setdefault("memory", {})
         globals_section["memory"]["path"] = str(memory_path)
-        globals_section["concurrency"] = int(self.project_config.app.default_run.max_concurrency)
+        globals_section["concurrency"] = self._runtime_concurrency_limit()
+        if self.model_config.timeout is not None:
+            globals_section["model_call_timeout_seconds"] = int(self.model_config.timeout)
         if scenario.multi_turn:
             existing_recursion_limit = globals_section.get("recursion_limit")
             try:
@@ -353,6 +357,7 @@ class BasicEducationExecutor:
         evaluation_section = rendered.get("evaluation")
         if isinstance(evaluation_section, dict) and test_endpoint_model is not None:
             judge_payload = self._build_runtime_model_payload(test_endpoint_model)
+            self._tune_runtime_evaluator_payload(judge_payload)
             judge_keys = [key for key in scenario.judge_model_keys if key in models_section]
             if not judge_keys:
                 eval_model_key = evaluation_section.get("model")
@@ -400,6 +405,17 @@ class BasicEducationExecutor:
             tasks_obj["mode"] = "iter"
             tasks_obj["content"] = [dict(zip(keys, combo)) for combo in combinations]
 
+    def _runtime_concurrency_limit(self) -> int:
+        limits = [self.project_config.app.default_run.max_concurrency]
+        provider_config = self.project_config.providers.get(self.model_config.provider_name)
+        if provider_config is not None:
+            limits.append(provider_config.rate_limits.max_concurrency)
+        limits.append(self.model_config.rate_limits.max_concurrency)
+        positive_limits = [int(value) for value in limits if value is not None and int(value) > 0]
+        if not positive_limits:
+            return 1
+        return max(1, min(positive_limits))
+
     def _resolve_test_endpoint_model(self) -> ModelConfig | None:
         model_id = (
             self.config.test_endpoint_model_id
@@ -446,6 +462,9 @@ class BasicEducationExecutor:
         kargs: dict[str, Any] = {}
         if model_config.temperature is not None:
             kargs["temperature"] = model_config.temperature
+        if model_config.timeout is not None:
+            kargs["timeout"] = int(model_config.timeout)
+            kargs["request_timeout"] = int(model_config.timeout)
         runtime_max_tokens = provider_kwargs.pop("runtime_max_tokens", None)
         if runtime_max_tokens is not None:
             kargs["max_tokens"] = int(runtime_max_tokens)
@@ -453,9 +472,41 @@ class BasicEducationExecutor:
             kargs["max_tokens"] = model_config.max_tokens
         if provider_kwargs:
             kargs.update(provider_kwargs)
+        if runtime_type == "openai":
+            self._normalize_langchain_openai_kargs(kargs)
         if kargs:
             payload["kargs"] = kargs
         return payload
+
+    def _normalize_langchain_openai_kargs(self, kargs: dict[str, Any]) -> None:
+        """LangChain's OpenAI wrapper requires nonstandard request fields in extra_body."""
+        extra_body = kargs.get("extra_body")
+        if not isinstance(extra_body, dict):
+            extra_body = {}
+
+        for key in ("chat_template_kwargs", "served_model_name"):
+            if key not in kargs:
+                continue
+            value = kargs.pop(key)
+            extra_body.setdefault(key, value)
+
+        if extra_body:
+            kargs["extra_body"] = extra_body
+
+    def _tune_runtime_evaluator_payload(self, payload: dict[str, Any]) -> None:
+        kargs = payload.setdefault("kargs", {})
+        current_max_tokens = kargs.get("max_tokens")
+        try:
+            max_tokens = int(current_max_tokens)
+        except (TypeError, ValueError):
+            max_tokens = 0
+        if max_tokens < DEFAULT_EVALUATOR_MAX_TOKENS:
+            kargs["max_tokens"] = DEFAULT_EVALUATOR_MAX_TOKENS
+        extra_body = kargs.setdefault("extra_body", {})
+        if isinstance(extra_body, dict):
+            chat_template_kwargs = extra_body.setdefault("chat_template_kwargs", {})
+            if isinstance(chat_template_kwargs, dict):
+                chat_template_kwargs.setdefault("enable_thinking", False)
 
     def _reset_runtime_artifacts(self, memory_path: Path) -> None:
         if memory_path.exists():

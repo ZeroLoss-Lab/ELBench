@@ -26,6 +26,8 @@ class MockModelClient(ModelClient):
 
     def _benchmark_response(self, sample: Sample, request: GenerationRequest) -> str:
         mode = self.model_config.provider_kwargs.get("mode")
+        if mode == "empty":
+            return ""
         if mode == "format_retry_probe":
             return self._format_retry_probe_response(request)
         if sample.task == "mmlu_pro":

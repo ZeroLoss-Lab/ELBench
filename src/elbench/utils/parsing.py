@@ -50,22 +50,93 @@ def extract_single_choice_answer(
             if not prefix:
                 continue
             match = re.fullmatch(
-                rf"{re.escape(prefix)}\s*[:：]?\s*[\[\(（【]?\s*([{valid_pattern}])\s*[\]\)）】]?\s*[.。!！?？]*",
+                rf"{re.escape(prefix)}\s*[:：]?\s*[\[\(（【「『]?\s*([{valid_pattern}])\s*[\]\)）】」』]?\s*[.。．!！?？]*",
                 line,
                 flags=re.I,
             )
             if match:
                 return match.group(1).upper()
+            loose_match = re.fullmatch(
+                rf"{re.escape(prefix)}\s*[:：]?\s*[\[\(（【「『]?\s*([{valid_pattern}])"
+                rf"(?:\s*[\]\)）】」』]|[.。．、,，:：\-]|\s+).+",
+                line,
+                flags=re.I,
+            )
+            if loose_match:
+                return loose_match.group(1).upper()
 
     last_line = candidate_lines[-1]
     fallback = re.fullmatch(
-        rf"[\[\(（【]?\s*([{valid_pattern}])\s*[\]\)）】]?\s*[.。!！?？]*",
+        rf"[\[\(（【「『]?\s*([{valid_pattern}])\s*[\]\)）】」』]?\s*[.。．!！?？]*",
         last_line,
         flags=re.I,
     )
     if fallback:
         return fallback.group(1).upper()
     return None
+
+
+def extract_choice_answer(
+    text: str | None,
+    valid_letters: list[str],
+    *,
+    answer_prefixes: list[str],
+    allow_multiple: bool = False,
+) -> str | None:
+    if not allow_multiple:
+        return extract_single_choice_answer(text, valid_letters, answer_prefixes=answer_prefixes)
+    if not text or not valid_letters or not answer_prefixes:
+        return None
+
+    lines = [line.strip() for line in str(text).splitlines() if line.strip()]
+    if not lines:
+        return None
+
+    valid_pattern = "".join(re.escape(letter) for letter in valid_letters)
+    candidate_lines = [_normalize_choice_line(line) for line in lines[-3:]]
+    normalized_prefixes = [_normalize_choice_line(prefix) for prefix in answer_prefixes if prefix]
+
+    for line in reversed(candidate_lines):
+        if not line:
+            continue
+        for prefix in normalized_prefixes:
+            if not prefix:
+                continue
+            match = re.fullmatch(
+                rf"{re.escape(prefix)}\s*[:：]?\s*[\[\(（【「『]?\s*([{valid_pattern}](?:\s*[,，、/]\s*[{valid_pattern}]|\s*[{valid_pattern}])*)\s*[\]\)）】」』]?\s*[.。？！!?]*",
+                line,
+                flags=re.I,
+            )
+            if match:
+                return _normalize_choice_answer(match.group(1), valid_letters)
+
+    last_line = candidate_lines[-1]
+    fallback = re.fullmatch(
+        rf"[\[\(（【「『]?\s*([{valid_pattern}](?:\s*[,，、/]\s*[{valid_pattern}]|\s*[{valid_pattern}])*)\s*[\]\)）】」』]?\s*[.。？！!?]*",
+        last_line,
+        flags=re.I,
+    )
+    if fallback:
+        return _normalize_choice_answer(fallback.group(1), valid_letters)
+    return None
+
+
+def normalize_choice_answer(value: str | None, valid_letters: list[str]) -> str | None:
+    if value in (None, ""):
+        return None
+    return _normalize_choice_answer(str(value), valid_letters)
+
+
+def _normalize_choice_answer(value: str, valid_letters: list[str]) -> str | None:
+    valid = {letter.upper() for letter in valid_letters}
+    letters = [letter for letter in re.findall(r"[A-Z]", value.upper()) if letter in valid]
+    if not letters:
+        return None
+    deduped: list[str] = []
+    for letter in letters:
+        if letter not in deduped:
+            deduped.append(letter)
+    return "".join(deduped)
 
 
 def _normalize_choice_line(text: str) -> str:
@@ -77,10 +148,15 @@ def _normalize_choice_line(text: str) -> str:
                 "）": ")",
                 "【": "[",
                 "】": "]",
+                "［": "[",
+                "］": "]",
                 "「": "[",
                 "」": "]",
                 "『": "[",
                 "』": "]",
+                "。": ".",
+                "．": ".",
+                "，": ",",
             }
         )
     )

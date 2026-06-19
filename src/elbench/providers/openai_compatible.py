@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import json
 from time import perf_counter
 from typing import Any
 
@@ -17,10 +19,15 @@ RESPONSES_API_ONLY_PREFIXES = (
 )
 
 
+class StreamingResponseTimeout(httpx.TimeoutException):
+    retryable = False
+
+
 class OpenAICompatibleClient(ModelClient):
     def __init__(self, provider_config, model_config) -> None:
         super().__init__(provider_config, model_config)
         timeout = model_config.timeout or provider_config.default_timeout
+        self._timeout_seconds = timeout
         self._client = httpx.AsyncClient(timeout=timeout)
 
     async def generate(self, sample, request: GenerationRequest) -> ModelResponse:
@@ -48,6 +55,14 @@ class OpenAICompatibleClient(ModelClient):
         )
 
         start = perf_counter()
+        if request.stream:
+            return await self._generate_streaming(
+                headers=headers,
+                payload=payload,
+                start=start,
+                use_responses_api=use_responses_api,
+            )
+
         response = await self._client.post(
             self._build_url(use_responses_api=use_responses_api),
             headers=headers,
@@ -106,6 +121,122 @@ class OpenAICompatibleClient(ModelClient):
             latency_ms=latency_ms,
             status_code=response.status_code,
         )
+
+    async def _generate_streaming(
+        self,
+        *,
+        headers: dict[str, str],
+        payload: dict[str, Any],
+        start: float,
+        use_responses_api: bool,
+    ) -> ModelResponse:
+        url = self._build_url(use_responses_api=use_responses_api)
+        try:
+            async with asyncio.timeout(float(self._timeout_seconds)):
+                async with self._client.stream("POST", url, headers=headers, json=payload) as response:
+                    if response.status_code >= 400:
+                        await response.aread()
+                        latency_ms = (perf_counter() - start) * 1000
+                        blocked_response = self._coerce_filtered_prompt_response(response, latency_ms=latency_ms)
+                        if blocked_response is not None:
+                            return blocked_response
+                        self._raise_for_status_with_body(response)
+
+                    data = await self._consume_chat_completion_stream(response)
+        except TimeoutError as exc:
+            elapsed_ms = (perf_counter() - start) * 1000
+            raise StreamingResponseTimeout(
+                f"Streaming response exceeded total timeout of {self._timeout_seconds}s "
+                f"after {elapsed_ms:.0f}ms"
+            ) from exc
+
+        latency_ms = (perf_counter() - start) * 1000
+        return ModelResponse(
+            text=self._extract_text(data, use_responses_api=False),
+            raw_payload=data,
+            usage=data.get("usage", {}),
+            latency_ms=latency_ms,
+            status_code=response.status_code,
+        )
+
+    async def _consume_chat_completion_stream(self, response: httpx.Response) -> dict[str, Any]:
+        content_parts: list[str] = []
+        reasoning_parts: list[str] = []
+        usage: dict[str, Any] = {}
+        role = "assistant"
+        finish_reason: str | None = None
+        chunk_count = 0
+        done = False
+        envelope: dict[str, Any] = {
+            "id": None,
+            "object": "chat.completion",
+            "created": None,
+            "model": self.model_config.model_name,
+        }
+
+        async for line in response.aiter_lines():
+            line = line.strip()
+            if not line or not line.startswith("data:"):
+                continue
+            payload = line[5:].strip()
+            if payload == "[DONE]":
+                done = True
+                break
+            try:
+                chunk = json.loads(payload)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError(f"Invalid streaming JSON chunk: {payload[:200]}") from exc
+            if not isinstance(chunk, dict):
+                continue
+
+            chunk_count += 1
+            for key in ("id", "created", "model"):
+                if chunk.get(key) is not None:
+                    envelope[key] = chunk.get(key)
+            if chunk.get("object"):
+                envelope["object"] = "chat.completion"
+            if isinstance(chunk.get("usage"), dict):
+                usage = chunk["usage"]
+
+            choices = chunk.get("choices") or []
+            if not choices or not isinstance(choices[0], dict):
+                continue
+            choice = choices[0]
+            if choice.get("finish_reason") is not None:
+                finish_reason = choice.get("finish_reason")
+            delta = choice.get("delta") or {}
+            if not isinstance(delta, dict):
+                continue
+            if delta.get("role"):
+                role = str(delta.get("role"))
+            content = self._stringify_content(delta.get("content"))
+            if content:
+                content_parts.append(content)
+            reasoning = self._stringify_content(delta.get("reasoning_content"))
+            if not reasoning:
+                reasoning = self._stringify_content(delta.get("reasoning"))
+            if reasoning:
+                reasoning_parts.append(reasoning)
+
+        if not done:
+            raise RuntimeError("Streaming response ended before [DONE] marker")
+
+        content_text = "".join(content_parts)
+        reasoning_text = "".join(reasoning_parts)
+        message: dict[str, Any] = {"role": role, "content": content_text}
+        if reasoning_text:
+            message["reasoning_content"] = reasoning_text
+        envelope["choices"] = [
+            {
+                "index": 0,
+                "message": message,
+                "finish_reason": finish_reason,
+            }
+        ]
+        envelope["usage"] = usage
+        envelope["stream"] = True
+        envelope["stream_chunk_count"] = chunk_count
+        return envelope
 
     async def aclose(self) -> None:
         await self._client.aclose()
@@ -277,7 +408,27 @@ class OpenAICompatibleClient(ModelClient):
         code = str(error.get("code", "") or "").strip().lower()
         message = str(error.get("message", "") or "").strip()
         lowered = message.lower()
-        if code not in {"content_filter", "invalid_prompt", "modelarts.81011"}:
+        if code == "invalid_request_error" and "content exists risk" in lowered:
+            text = f"[UPSTREAM_FILTERED:{code}] {message}" if message else f"[UPSTREAM_FILTERED:{code}]"
+            return ModelResponse(
+                text=text,
+                raw_payload=data,
+                usage=data.get("usage", {}),
+                latency_ms=latency_ms,
+                status_code=response.status_code,
+                error=code,
+            )
+        if code == "1301":
+            text = f"[UPSTREAM_FILTERED:{code}] {message}" if message else f"[UPSTREAM_FILTERED:{code}]"
+            return ModelResponse(
+                text=text,
+                raw_payload=data,
+                usage=data.get("usage", {}),
+                latency_ms=latency_ms,
+                status_code=response.status_code,
+                error=code,
+            )
+        if code not in {"content_filter", "invalid_prompt", "modelarts.81011", "1301"}:
             return None
         if not any(
             marker in lowered
@@ -287,6 +438,10 @@ class OpenAICompatibleClient(ModelClient):
                 "content management policy",
                 "limited access",
                 "sensitive information",
+                "不安全",
+                "安全",
+                "敏感",
+                "审核",
             )
         ):
             return None

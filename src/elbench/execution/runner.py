@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import re
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -25,10 +26,14 @@ from .response_format import (
     ResponseFormatError,
     attach_format_metadata,
     augment_prompt_for_format,
+    build_concise_retry_prompt,
     build_retry_followup,
     get_response_format_spec,
 )
 from .retry import is_retryable_exception, sleep_before_retry
+
+
+ANSWER_COMPLETION_TASKS = {"math_500", "aime24", "aime25", "aime26", "gsm8k"}
 
 
 @dataclass(slots=True)
@@ -387,6 +392,9 @@ class BenchmarkRunner:
         )
         judge = judge_router.get_judge(sample)
         judged = await judge.judge(sample, response) if judge_enabled else None
+        metadata = dict(sample.metadata)
+        if response.format_valid is False:
+            metadata.update(response.format_metadata)
         return EvalResult(
             sample_id=sample.sample_id,
             source_file=sample.source_file,
@@ -407,7 +415,7 @@ class BenchmarkRunner:
             latency_ms=response.latency_ms,
             retry_count=retry_count,
             timestamp=datetime.now(timezone.utc),
-            metadata=sample.metadata,
+            metadata=metadata,
             judge_metadata=judged.judge_metadata if judged else {},
             raw_response=response.raw_payload,
         )
@@ -429,12 +437,44 @@ class BenchmarkRunner:
         base_prompt = request.prompt
         request_messages = list(request.messages) if request.messages else [{"role": "user", "content": base_prompt}]
         base_max_tokens = request.max_tokens
+        if sample_key in checkpoint.failed_ids and format_spec is not None:
+            concise_prompt = build_concise_retry_prompt(base_prompt, format_spec)
+            request_messages = [{"role": "user", "content": concise_prompt}]
+            request.prompt = concise_prompt
+            request.max_tokens = 64
+        elif sample.task in ANSWER_COMPLETION_TASKS and sample_key in checkpoint.failed_ids:
+            concise_prompt = _build_concise_answer_retry_prompt(base_prompt)
+            request_messages = [{"role": "user", "content": concise_prompt}]
+            request.prompt = concise_prompt
+            request.max_tokens = _answer_retry_max_tokens(base_max_tokens)
         for attempt in range(1, attempts + 1):
             estimated_tokens = self._estimate_tokens(request.prompt, request.max_tokens)
             await limiter.acquire(estimated_tokens=estimated_tokens)
             try:
                 request.messages = request_messages
                 response = await client.generate(sample=sample, request=request)
+                if _should_retry_truncated_answer(sample, response):
+                    await checkpoint.set_retry_count(sample_key, attempt)
+                    if attempt >= attempts:
+                        response.retry_count = attempt - 1
+                        return response, attempt - 1
+                    delay = await sleep_before_retry(retry_policy, attempt, None)
+                    concise_prompt = _build_concise_answer_retry_prompt(base_prompt)
+                    request_messages = [{"role": "user", "content": concise_prompt}]
+                    request.prompt = concise_prompt
+                    request.max_tokens = _answer_retry_max_tokens(base_max_tokens)
+                    await retry_writer.write(
+                        {
+                            "sample_id": sample.sample_id,
+                            "source_file": sample.source_file,
+                            "attempt": attempt,
+                            "next_delay_seconds": delay,
+                            "error_type": "LengthTruncatedResponse",
+                            "error_message": "Model response ended because max_tokens was reached before a reliable final answer.",
+                            "retry_reason": "answer_length_truncated",
+                        }
+                    )
+                    continue
                 response = attach_format_metadata(response, format_spec)
                 response.retry_count = attempt - 1
                 await checkpoint.set_retry_count(sample_key, attempt - 1)
@@ -442,8 +482,20 @@ class BenchmarkRunner:
             except ResponseFormatError as exc:
                 await checkpoint.set_retry_count(sample_key, attempt)
                 if attempt >= attempts:
+                    response = locals().get("response")
+                    if isinstance(response, ModelResponse):
+                        response.format_valid = False
+                        response.format_metadata = {
+                            **exc.metadata,
+                            "failure_category": "model_instruction_following",
+                            "failure_type": "response_format",
+                            "error_message": str(exc),
+                        }
+                        response.retry_count = attempt - 1
+                        await checkpoint.set_retry_count(sample_key, attempt - 1)
+                        return response, attempt - 1
                     raise
-                delay = await sleep_before_retry(retry_policy, attempt)
+                delay = await sleep_before_retry(retry_policy, attempt, exc)
                 previous_response_text = ""
                 response = locals().get("response")
                 if "response" in locals():
@@ -454,13 +506,21 @@ class BenchmarkRunner:
                     format_spec,
                     response if isinstance(response, ModelResponse) else None,
                 )
-                request_messages = [{"role": "user", "content": base_prompt}]
-                assistant_content = followup.get("assistant_content")
-                if assistant_content:
-                    request_messages.append({"role": "assistant", "content": assistant_content})
-                user_reminder = str(followup.get("user_reminder", "") or "").strip()
-                if user_reminder:
-                    request_messages.append({"role": "user", "content": user_reminder})
+                if followup.get("retry_reason") == "format_empty_after_reasoning":
+                    request_messages = [
+                        {
+                            "role": "user",
+                            "content": build_concise_retry_prompt(base_prompt, format_spec),
+                        }
+                    ]
+                else:
+                    request_messages = [{"role": "user", "content": base_prompt}]
+                    assistant_content = followup.get("assistant_content")
+                    if assistant_content:
+                        request_messages.append({"role": "assistant", "content": assistant_content})
+                    user_reminder = str(followup.get("user_reminder", "") or "").strip()
+                    if user_reminder:
+                        request_messages.append({"role": "user", "content": user_reminder})
                 request.max_tokens = followup.get("max_tokens") or base_max_tokens
                 await retry_writer.write(
                     {
@@ -478,7 +538,14 @@ class BenchmarkRunner:
                 await checkpoint.set_retry_count(sample_key, attempt)
                 if attempt >= attempts or not is_retryable_exception(exc, retryable_codes):
                     raise
-                delay = await sleep_before_retry(retry_policy, attempt)
+                delay = await sleep_before_retry(retry_policy, attempt, exc)
+                retry_reason = "http_retry"
+                if sample.task in ANSWER_COMPLETION_TASKS:
+                    concise_prompt = _build_concise_answer_retry_prompt(base_prompt)
+                    request_messages = [{"role": "user", "content": concise_prompt}]
+                    request.prompt = concise_prompt
+                    request.max_tokens = _answer_retry_max_tokens(base_max_tokens)
+                    retry_reason = "answer_retry_after_error"
                 await retry_writer.write(
                     {
                         "sample_id": sample.sample_id,
@@ -487,6 +554,7 @@ class BenchmarkRunner:
                         "next_delay_seconds": delay,
                         "error_type": type(exc).__name__,
                         "error_message": str(exc),
+                        "retry_reason": retry_reason,
                     }
                 )
             finally:
@@ -564,4 +632,39 @@ def _is_quota_exhausted_error(exc: BaseException) -> bool:
         "payment required",
     )
     return any(marker in text for marker in markers)
+
+
+def _should_retry_truncated_answer(sample: Sample, response: ModelResponse) -> bool:
+    if sample.task not in ANSWER_COMPLETION_TASKS:
+        return False
+    payload = response.raw_payload if isinstance(response.raw_payload, dict) else {}
+    choices = payload.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return False
+    first = choices[0] if isinstance(choices[0], dict) else {}
+    finish_reason = str(first.get("finish_reason") or "").strip().lower()
+    return finish_reason == "length"
+
+
+def _answer_retry_max_tokens(base_max_tokens: int | None) -> int:
+    return base_max_tokens or 512
+
+
+def _build_concise_answer_retry_prompt(base_prompt: str) -> str:
+    lines = []
+    for line in base_prompt.splitlines():
+        cleaned = re.sub(
+            r"\b(?:please\s+)?(?:reason|think)\s+step\s+by\s+step\b(?:\s+before\s+answering)?[,.]?\s*(?:and\s+)?",
+            "",
+            line,
+            flags=re.I,
+        ).strip()
+        if cleaned:
+            lines.append(cleaned)
+    prompt = "\n".join(lines).rstrip()
+    return (
+        f"{prompt}\n\n"
+        "Do not include any reasoning, explanation, or thinking. "
+        "Output only the final answer. Put the final answer within \\boxed{}."
+    ).strip()
 

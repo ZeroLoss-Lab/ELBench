@@ -11,6 +11,7 @@ from elbench.basic_education_runtime.entity import AgentConfig
 from elbench.basic_education_runtime.utils import content_to_text, replace_prompt, remove_think
 from elbench.basic_education_runtime.config import CONFIG
 
+import asyncio
 import copy
 
 
@@ -37,6 +38,8 @@ def _init_agent_from_dict(
             n_m = []
             for item in state["messages"]:
                 content = content_to_text(remove_think(item.content))
+                if not content.strip():
+                    continue
                 if item.name == agent_name:
                     item = AIMessage(content=content, type="ai")  # type: ignore
                 else:
@@ -45,7 +48,10 @@ def _init_agent_from_dict(
             if len(n_m) > ac.memory.keep_turns * 2 + 1:
                 n_m = n_m[-ac.memory.keep_turns * 2 - 1 :]
             n_m = ac_prompt + n_m
-        r = await m.ainvoke(n_m)  # type: ignore
+        r = await asyncio.wait_for(  # type: ignore
+            m.ainvoke(n_m),
+            timeout=CONFIG.globals.model_call_timeout_seconds,
+        )
         r.name = agent_name
         return {"messages": [r]}
 

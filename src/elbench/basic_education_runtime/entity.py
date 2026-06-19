@@ -32,6 +32,7 @@ class GlobalConfig(BaseModel):
     recursion_limit: int = 25
     memory: Memory = Memory()
     retry: RetryConfig = RetryConfig()
+    model_call_timeout_seconds: int = 600
 
 
 # Model
@@ -121,8 +122,9 @@ class ExportFormat(BaseModel):
         teacher: xxxxxxx
         student: xxxxxxx
         """
-        # 获取占位符，所有占位符都由{}包裹
-        placeholders = re.findall(r"\{.+?\}", template)
+        # Only runtime placeholders should be substituted. Model outputs may
+        # legitimately contain braces such as "{1}", which must remain literal.
+        placeholders = re.findall(r"\{(?:task\.[^{}]+|messages\.[^{}]+)\}", template)
         for placeholder in placeholders:
             # 获取占位符的名称，即{}中的内容
             placeholder_name = placeholder.strip("{}")

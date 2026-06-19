@@ -19,11 +19,14 @@ from .runner import BenchmarkRunner, RunOptions
 
 
 INNOSPARK_API_BASE = "https://api.innospark.cn/v1"
+INNOSPARK_AIECNU_API_BASE = "https://innospark-api.aiecnu.net/v1"
 EXTERNAL_SUPPORT_API_BASE = "http://35.220.164.252:3888/v1"
+GPT_AGENT_API_BASE = "https://gpt-agent.cc/v1"
 EXCLUDED_CAMPAIGN_MODELS = {
     "gemini-3-flash-preview",
     "gpt-5.2-pro",
     "gpt-5.4-pro",
+    "kimi-k2.6",
 }
 RESULT_SUBDIRS = ("raw_responses", "judged_results", "logs", "summaries")
 SAFETY_TASKS = {
@@ -110,9 +113,14 @@ def build_default_api_pools(config: ProjectConfig) -> list[ApiPoolPlan]:
             "deepseek-v3.2",
             "doubao-seed-2-0-pro-260215",
             "deepseek-r1-250528",
-            "kimi-k2.6",
             "gemini-3.1-pro-preview",
         ),
+    )
+    innospark_aiecnu = _models_for_api(
+        config,
+        api_base=INNOSPARK_AIECNU_API_BASE,
+        api_key_env="INNOSPARK_AIECNU_API_KEY",
+        preferred_order=("innospark-235b",),
     )
     external = _models_for_api(
         config,
@@ -124,6 +132,30 @@ def build_default_api_pools(config: ProjectConfig) -> list[ApiPoolPlan]:
             "claude-opus-4-6",
         ),
     )
+    gpt_agent = _models_for_api(
+        config,
+        api_base=GPT_AGENT_API_BASE,
+        api_key_env="GPT_AGENT_API_KEY",
+        preferred_order=(
+            "deepseek-v4-flash",
+            "doubao-seed-2.0-pro",
+            "glm-5.1",
+            "deepseek-v4-pro",
+            "claude-opus-4-8",
+        ),
+    )
+    gpt_agent = tuple(
+        model_id
+        for model_id in gpt_agent
+        if model_id
+        in {
+            "deepseek-v4-flash",
+            "doubao-seed-2.0-pro",
+            "glm-5.1",
+            "deepseek-v4-pro",
+            "claude-opus-4-8",
+        }
+    )
     return [
         ApiPoolPlan(
             pool_id="innospark_relay",
@@ -133,10 +165,24 @@ def build_default_api_pools(config: ProjectConfig) -> list[ApiPoolPlan]:
             modules=innospark_modules,
         ),
         ApiPoolPlan(
+            pool_id="innospark_aiecnu",
+            api_key_env="INNOSPARK_AIECNU_API_KEY",
+            api_base=INNOSPARK_AIECNU_API_BASE,
+            model_ids=innospark_aiecnu,
+            modules=innospark_modules,
+        ),
+        ApiPoolPlan(
             pool_id="external_support",
             api_key_env="EXTERNAL_SUPPORT_API_KEY",
             api_base=EXTERNAL_SUPPORT_API_BASE,
             model_ids=external,
+            modules=external_modules,
+        ),
+        ApiPoolPlan(
+            pool_id="gpt_agent",
+            api_key_env="GPT_AGENT_API_KEY",
+            api_base=GPT_AGENT_API_BASE,
+            model_ids=gpt_agent,
             modules=external_modules,
         ),
     ]
@@ -426,4 +472,24 @@ def _best_summary_for_model(
 def _model_concurrency(model_id: str, requested: int | None) -> int | None:
     if model_id == "kimi-k2.6":
         return 1
+    if model_id == "deepseek-r1-250528":
+        return min(requested, 2) if requested is not None else 2
+    innospark_relay_models = {
+        "deepseek-v3.2",
+        "doubao-seed-2-0-pro-260215",
+        "gemini-3.1-pro-preview",
+    }
+    if model_id in innospark_relay_models:
+        return min(requested, 8) if requested is not None else 8
+    if model_id == "innospark-235b":
+        return min(requested, 1) if requested is not None else 1
+    gpt_agent_models = {
+        "deepseek-v4-pro",
+        "deepseek-v4-flash",
+        "glm-5.1",
+        "claude-opus-4-8",
+        "doubao-seed-2.0-pro",
+    }
+    if model_id in gpt_agent_models:
+        return min(requested, 32) if requested is not None else 32
     return requested

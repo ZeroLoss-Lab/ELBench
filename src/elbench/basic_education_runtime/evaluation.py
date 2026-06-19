@@ -1,4 +1,5 @@
 ﻿import re
+import asyncio
 from typing import Any, Dict
 from langchain_core.tools import tool, BaseTool
 from elbench.basic_education_runtime.config import CONFIG
@@ -38,6 +39,40 @@ def generate_evaluation_tool() -> BaseTool:
     return save_to_db
 
 
+def _build_evaluation_messages(
+    *,
+    system_prompt: str,
+    other_prompts: list[Any],
+    exported_result: ExportFormat,
+) -> list[dict[str, str]]:
+    messages: list[dict[str, str]] = []
+    for op in other_prompts:
+        content = exported_result.replace_template(op.content)
+        role = str(op.role or "user").strip() or "user"
+        messages.append(
+            {
+                "role": role,
+                "content": content,
+            }
+        )
+
+    has_user_query = any(
+        item.get("role") == "user" and str(item.get("content", "")).strip()
+        for item in messages
+    )
+    if not has_user_query:
+        fallback = exported_result.replace_template(system_prompt).strip()
+        if not fallback:
+            fallback = "Please complete the evaluation."
+        messages.append(
+            {
+                "role": "user",
+                "content": fallback,
+            }
+        )
+    return messages
+
+
 @retry(
     stop=stop_after_attempt(CONFIG.globals.retry.attempt),
     wait=wait_fixed(CONFIG.globals.retry.interval),
@@ -48,15 +83,11 @@ async def evaluate(
     assert CONFIG.evaluation
     system_prompt, other_prompt = CONFIG.evaluation.get_prompts()
     system_prompt = exported_result.replace_template(system_prompt)
-    ops = []
-    for op in other_prompt:
-        content = exported_result.replace_template(op.content)
-        ops.append(
-            {
-                "role": op.role,
-                "content": content,
-            }
-        )
+    ops = _build_evaluation_messages(
+        system_prompt=system_prompt,
+        other_prompts=other_prompt,
+        exported_result=exported_result,
+    )
     if CONFIG.evaluation.format_mode == "tool":
         tools = [generate_evaluation_tool()]
 
@@ -76,7 +107,10 @@ async def evaluate(
             + "\n\nPlease call the save_result_to_database tool to store the evaluation result.",
         )
 
-        a = await agent.ainvoke({"messages": ops})
+        a = await asyncio.wait_for(
+            agent.ainvoke({"messages": ops}),
+            timeout=CONFIG.globals.model_call_timeout_seconds,
+        )
         data = json.loads(a["messages"][-1].content)
         return data
     elif CONFIG.evaluation.format_mode == "prompt":
@@ -93,7 +127,10 @@ async def evaluate(
             + "<END OF EVAL OUTPUT>",
         )
 
-        a = await agent.ainvoke({"messages": ops})
+        a = await asyncio.wait_for(
+            agent.ainvoke({"messages": ops}),
+            timeout=CONFIG.globals.model_call_timeout_seconds,
+        )
         response: str = a["messages"][-1].content
 
         # Fuck Gemini
