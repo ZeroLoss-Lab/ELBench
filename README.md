@@ -8,7 +8,7 @@ models. It evaluates a model across four modules — general capability, safety
 and trustworthiness, basic education, and high-level educational cultivation —
 under one consistent, config-driven evaluation framework.
 
-The benchmark covers **2,942 items** across the four modules and is built so a
+The benchmark covers **2,939 items** across the four modules and is built so a
 single aggregate score never hides where a model actually succeeds or fails.
 
 ## Leaderboard
@@ -38,7 +38,7 @@ machine-readable final board is
 
 | Module | Items | What it measures |
 |:-------|:-----:|:-----------------|
-| General Capability (`通用模型`) | 897 | Knowledge, reasoning, instruction following, and math (MMLU-Pro, C-Eval, IFEval, MATH-500, AIME, GSM8K samples) |
+| General Capability (`通用模型`) | 894 | Knowledge, reasoning, instruction following, and math (MMLU-Pro, C-Eval, IFEval, MATH-500, AIME samples) |
 | Safety & Trustworthiness (`安全可信`) | 1,000 | Harmful-request refusal, helpfulness on benign requests, and adversarial robustness |
 | Basic Education (`基本教育`) | 45 | Multi-turn teaching: knowledge explanation, situated question design, cross-subject lesson plans, guided problem solving |
 | High-Level Educational Cultivation (`高阶育人`) | 1,000 | Open-ended cultivation of higher-order educational goals |

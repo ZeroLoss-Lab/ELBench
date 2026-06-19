@@ -239,16 +239,3 @@ files:
     filename_patterns:
       - aime26.jsonl
     aliases: []
-  - canonical_name: gsm8k_sampled.jsonl
-    module: 通用模型
-    subset: gsm8k
-    file_type: jsonl
-    task: gsm8k
-    loader_name: math_500_jsonl
-    mapping_key: math_500_jsonl
-    path_hints:
-      - 通用/gsm8k_sampled.jsonl
-      - gsm8k_sampled.jsonl
-    filename_patterns:
-      - gsm8k_sampled.jsonl
-    aliases: []

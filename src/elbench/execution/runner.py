@@ -33,7 +33,7 @@ from .response_format import (
 from .retry import is_retryable_exception, sleep_before_retry
 
 
-ANSWER_COMPLETION_TASKS = {"math_500", "aime24", "aime25", "aime26", "gsm8k"}
+ANSWER_COMPLETION_TASKS = {"math_500", "aime24", "aime25", "aime26"}
 
 
 @dataclass(slots=True)
