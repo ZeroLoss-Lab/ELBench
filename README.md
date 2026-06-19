@@ -3,364 +3,114 @@
 [![English](https://img.shields.io/badge/Language-English-blue.svg)](./README.md)
 [![简体中文](https://img.shields.io/badge/Language-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-red.svg)](./README.zh-CN.md)
 
-Config-driven benchmark framework for long-lived education LLM evaluation.
+**ELBench** is a multi-dimensional benchmark for education-facing large language
+models. It evaluates a model across four modules — general capability, safety
+and trustworthiness, basic education, and high-level educational cultivation —
+under one consistent, config-driven evaluation framework.
 
-ELBench is built as an engineering system, not a one-off script. The current repository keeps four benchmark modules in one consistent framework:
+The benchmark covers **2,942 items** across the four modules and is built so a
+single aggregate score never hides where a model actually succeeds or fails.
 
-- `安全可信` / `Safety & Trustworthiness`
-- `高阶育人` / `Advanced Educational Capacity`
-- `基本教育` / `Basic Education`
-- `通用模型` / `General Models`
+## Leaderboard
 
-The current registered benchmark inventory is:
+Overall scores are reported on a 0–100 scale with a bootstrap 95% confidence
+interval over items (10,000 resamples). The top models are statistically close:
+the spread among the first six is under two points, and several share rank 4.
 
-- `安全可信`: 5 files
-- `高阶育人`: 2 files
-- `基本教育`: 4 YAML scenarios, `45` tasks total
-- `通用模型`: 8 single-turn benchmark files
+| Rank | Model | Overall [95% CI] | General | Safety | Basic Ed. | High-Level |
+|:----:|:------|:----------------:|:-------:|:------:|:---------:|:----------:|
+| 1 | DeepSeek-V4-Flash | **83.7** [82, 85] | 88.5 | 89.7 | 84.9 | 71.5 |
+| 2 | Gemini-3.5-Flash | **83.4** [82, 84] | 93.4 | 70.2 | 94.6 | 75.3 |
+| 3 | Doubao-Seed-2.0-Pro | **83.2** [82, 84] | 86.6 | 83.0 | 89.7 | 73.5 |
+| 4 | Claude-Opus-4.8 | **83.1** [82, 84] | 91.9 | 78.5 | 92.7 | 69.5 |
+| 4 | GPT-5.4 | **83.1** [82, 84] | 86.4 | 76.6 | 94.4 | 75.1 |
+| 4 | DeepSeek-V4-Pro | **83.1** [82, 84] | 88.2 | 86.1 | 88.5 | 69.5 |
+| 7 | GLM-5.1 | **81.7** [80, 84] | 83.2 | 89.5 | 79.2 | 75.0 |
+| 8 | Safe-InnoSpark | **77.0** [76, 78] | 68.0 | 87.6 | 87.3 | 65.2 |
+| 9 | InnoSpark-235B | **76.4** [75, 78] | 74.2 | 78.0 | 87.5 | 65.9 |
 
-`基本教育` is integrated as a first-class ELBench module. Its benchmark data lives under `data/benchmark_root/基本教育/`, and its multi-turn execution is handled by the internal `basic_education_runtime` module at `src/elbench/basic_education_runtime/`.
+Per-module and per-task leaderboards, confidence intervals, and the
+judge-reliability audit are published under [`results/`](results/). The
+machine-readable final board is
+[`results/audit-judge-integrity/leaderboard_FINAL.json`](results/audit-judge-integrity/leaderboard_FINAL.json).
 
-This internal runtime was adapted from the ELMES project, but it is now packaged and maintained as part of ELBench itself.
+## Modules
 
-## Principles
+| Module | Items | What it measures |
+|:-------|:-----:|:-----------------|
+| General Capability (`通用模型`) | 897 | Knowledge, reasoning, instruction following, and math (MMLU-Pro, C-Eval, IFEval, MATH-500, AIME, GSM8K samples) |
+| Safety & Trustworthiness (`安全可信`) | 1,000 | Harmful-request refusal, helpfulness on benign requests, and adversarial robustness |
+| Basic Education (`基本教育`) | 45 | Multi-turn teaching: knowledge explanation, situated question design, cross-subject lesson plans, guided problem solving |
+| High-Level Educational Cultivation (`高阶育人`) | 1,000 | Open-ended cultivation of higher-order educational goals |
 
-- Registry-driven loading instead of hardcoded file logic
-- Provider adapters instead of provider-specific branches in the runner
-- Rule-based judging for objective tasks
-- `LLM-as-a-Judge` for subjective and open-ended tasks
-- Stable machine-readable outputs, logs, checkpoints, and summaries
-- Resume support after interruption
-- Configurable concurrency with a default global cap of `100`
-
-## What Is Actually Wired Today
-
-### Registered benchmark files
-
-`configs/file_registry.yaml` currently resolves these files:
-
-- `安全拒答.jsonl`
-- `安全引导.jsonl`
-- `安全回答.jsonl`
-- `SATAs.xlsx`
-- `adversarial_prompts.xlsx`
-- `高阶育人-edu.jsonl`
-- `高阶育人-omni.jsonl`
-- `knowledge.yaml`
-- `question.yaml`
-- `cross.yaml`
-- `config_guided_task.yaml`
-- `mmlu_pro_sampled.jsonl`
-- `ceval_sampled.jsonl`
-- `ifeval_sampled.jsonl`
-- `math_500_sampled.jsonl`
-- `aime24_sampled.jsonl`
-- `aime25.jsonl`
-- `aime26.jsonl`
-- `gsm8k_sampled.jsonl`
-
-Files are only considered active benchmark inputs after they are registered. Data files not present in `configs/file_registry.yaml` are not part of the runnable benchmark.
-
-### Current judge strategy
-
-Objective tasks use rule or reference matching:
-
-- `SATAs.xlsx`
-- `高阶育人-omni.jsonl`
-- `mmlu_pro_sampled.jsonl`
-- `ceval_sampled.jsonl`
-- `ifeval_sampled.jsonl`
-- `math_500_sampled.jsonl`
-- `aime24_sampled.jsonl`
-- `aime25.jsonl`
-- `aime26.jsonl`
-- `gsm8k_sampled.jsonl`
-
-Subjective or open-ended tasks use `LLM-as-a-Judge`:
-
-- `安全拒答.jsonl`
-- `安全引导.jsonl`
-- `安全回答.jsonl`
-- `adversarial_prompts.xlsx`
-- `高阶育人-edu.jsonl`
-
-The repository still treats external provider integration as pluggable. `mock.default` and `mock.judge` are included so the full pipeline can be validated locally without real API access.
-
-## Repository Layout
-
-```text
-.
-├── configs/
-│   ├── app.yaml
-│   ├── basic_education.yaml
-│   ├── field_mappings.yaml
-│   ├── file_registry.yaml
-│   ├── judges.yaml
-│   ├── models.yaml
-│   ├── module_registry.yaml
-│   └── providers.yaml
-├── data/
-│   └── benchmark_root/
-│       ├── 安全可信/
-│       ├── 高阶育人/
-│       ├── 基本教育/
-│       └── 通用/
-├── docs/
-│   └── TEAM_MAINTENANCE_GUIDE.zh-CN.md
-├── scripts/
-│   └── run_benchmark.py
-├── src/
-│   └── elbench/
-│       ├── basic_education_runtime/
-│       ├── cli.py
-│       ├── config/
-│       ├── execution/
-│       ├── judges/
-│       ├── loaders/
-│       ├── persistence/
-│       ├── providers/
-│       ├── registry/
-│       ├── schemas/
-│       ├── summary/
-│       └── utils/
-└── tests/
-```
-
-`scripts/run_benchmark.py` is intentionally a thin entrypoint. The actual benchmark logic lives under `src/elbench/`.
-
-## Core Architecture
-
-### Registry and schema adaptation
-
-- `configs/file_registry.yaml` maps files to module, subset, task, loader, and canonical name.
-- `configs/field_mappings.yaml` maps raw dataset fields into ELBench's unified internal schema.
-- JSONL, XLSX, and basic-education YAML inputs are normalized into the same `Sample` structure.
-
-### Unified sample/result schema
-
-Loaded records are normalized into a stable schema with fields such as:
-
-- `sample_id`
-- `source_file`
-- `module`
-- `subset`
-- `task`
-- `dimension`
-- `prompt`
-- `reference`
-- `metadata`
-
-Execution output includes:
-
-- `provider_name`
-- `model_id`
-- `model_name`
-- `model_response`
-- `judge_result`
-- `score`
-- `judge_reason`
-- `judge_metadata`
-- `latency_ms`
-- `retry_count`
-- `timestamp`
-
-### Provider abstraction
-
-- `ModelClient` is the common interface for model execution.
-- Provider-specific API differences are isolated under `src/elbench/providers/`.
-- The main runner does not care whether a model comes from OpenAI, Anthropic, Gemini, or another vendor once the adapter exists.
-
-### Execution, concurrency, and recovery
-
-The runner supports:
-
-- global concurrency control
-- provider/model-level concurrency limits
-- retry with exponential backoff
-- failure logging
-- checkpoint-based resume
-- raw-response persistence
-- judged-result persistence
-- summary generation
-
-Default global max concurrency is `100` in `configs/app.yaml`.
-
-### Basic Education runtime
-
-`基本教育` differs from the other modules only in execution style, not in data governance:
-
-- benchmark data stays under `data/benchmark_root/基本教育/`
-- file discovery still goes through `configs/file_registry.yaml`
-- runtime execution is handled by `src/elbench/execution/basic_education.py`
-- the internal runtime implementation lives under `src/elbench/basic_education_runtime/`
-
-## Output Layout
-
-```text
-outputs/
-├── raw_responses/
-├── judged_results/
-├── summaries/
-└── logs/
-```
-
-These directories are runtime artifacts and are intentionally ignored by Git.
+Objective tasks are graded by rule or reference matching; subjective and
+open-ended tasks use `LLM-as-a-Judge` with a validated judge panel. See
+[`results/audit-judge-integrity/`](results/audit-judge-integrity/) for the
+judge-agreement audit (quadratic weighted Cohen's κ against a human gold set).
 
 ## Installation
 
-### Core framework
-
 ```bash
-pip install -e .
-```
-
-### With Basic Education runtime support
-
-```bash
-pip install -e .[basic-education]
-```
-
-### Contributor setup
-
-```bash
-pip install -e .[basic-education,dev]
+pip install -e .                      # core framework
+pip install -e .[basic-education]     # + Basic Education multi-turn runtime
+pip install -e .[basic-education,dev] # + contributor tooling
 ```
 
 ## Quick Start
 
-### Inspect registered benchmark files
-
 ```bash
+# Inspect the registered benchmark files
 python scripts/run_benchmark.py inspect
+
+# Local smoke test against the mock provider (no API keys needed)
+python scripts/run_benchmark.py run \
+  --model-id mock.default --max-samples 3 --run-id smoke-test --no-resume
 ```
 
-### Run a local smoke test
-
-```bash
-python scripts/run_benchmark.py run --model-id mock.default --max-samples 3 --run-id smoke-test --no-resume
-```
-
-Or after editable install:
+After an editable install the `elbench` entrypoint is also available:
 
 ```bash
 elbench inspect
 elbench run --model-id mock.default --max-samples 3 --run-id smoke-test --no-resume
 ```
 
-### Run Basic Education
-
-The current built-in scenarios are:
-
-- `data/benchmark_root/基本教育/知识点讲解/knowledge.yaml` (`10`)
-- `data/benchmark_root/基本教育/情景化出题/question.yaml` (`10`)
-- `data/benchmark_root/基本教育/跨学科教案生成/cross.yaml` (`10`)
-- `data/benchmark_root/基本教育/引导式讲题/config_guided_task.yaml` (`15`)
-
-`configs/basic_education.yaml` binds these official benchmark files to the internal runtime:
-
-- `runtime_python: python`
-- `runtime_cli_module: elbench.basic_education_runtime.cli.main`
-- target model and optional judge model come from `configs/models.yaml`
-
-Run:
+To evaluate a real model, add it to `configs/models.yaml` and run a module:
 
 ```bash
-python scripts/run_benchmark.py run --model-id <your_model_id> --module 基本教育 --run-id basic-education-run
+python scripts/run_benchmark.py run \
+  --model-id <your_model_id> --module 基本教育 --run-id basic-education-run
 ```
 
-`基本教育` requires a real API-backed model config. `mock.*` models are for single-turn pipeline smoke checks and judge-path testing, not for the internal multi-turn runtime.
+`基本教育` (Basic Education) requires a real API-backed model config; the
+`mock.*` models are for single-turn pipeline smoke checks only.
+
+## Results
+
+Curated, committed outputs live under [`results/`](results/):
+
+- `audit-judge-integrity/` — final corrected leaderboard, bootstrap confidence
+  intervals, judge-panel κ, and per-module rejudge summaries
+- `final-leaderboard-*/` and `deliverables/` — overall and per-module
+  leaderboard tables (`总排行榜`, `按模块/测试/文件明细榜`)
+- `paper-facing-aaai*/` — the tables used in the paper
+
+Raw per-run artifacts (`outputs/raw_responses/`, `judged_results/`, `logs/`) are
+runtime-only and not committed.
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md) — registry, provider abstraction,
+  execution model, and how to extend the framework
+- [Team maintenance guide](docs/TEAM_MAINTENANCE_GUIDE.zh-CN.md) — what each
+  directory is for and what should or should not be committed
 
 ## Tests
 
 ```bash
-python -m unittest tests.test_basic_education_bridge tests.test_registry_and_loaders tests.test_judges tests.test_response_format_retry
+python -m unittest \
+  tests.test_basic_education_bridge tests.test_registry_and_loaders \
+  tests.test_judges tests.test_response_format_retry
 ```
-
-The `tests/` directory is part of the maintained framework and should stay in the repository.
-
-## Configuration Surface
-
-### `configs/models.yaml`
-
-Concrete evaluated-model and judge-model instances, including timeout, retry, rate limits, and provider kwargs.
-
-### `configs/providers.yaml`
-
-Provider adapter registry plus default provider capabilities.
-
-Current built-in adapters:
-
-- `mock`
-- `openai_compatible`
-
-### `configs/judges.yaml`
-
-Task-to-judge routing:
-
-- `rule`
-- `llm`
-
-### `configs/basic_education.yaml`
-
-Scenario-level runtime settings for the internal basic education runtime. This file does not replace the registry; it complements it.
-
-## Extending ELBench
-
-### Add a new provider
-
-1. Implement an adapter under `src/elbench/providers/`.
-2. Register it in `configs/providers.yaml`.
-3. Add concrete models in `configs/models.yaml`.
-
-### Add a new benchmark file
-
-1. Put the data file under `data/benchmark_root/`.
-2. Register it in `configs/file_registry.yaml`.
-3. Add field mappings in `configs/field_mappings.yaml`.
-4. Route judging in `configs/judges.yaml`.
-5. Add or reuse tests.
-
-### Add a future module
-
-ELBench already reserves space for further modules. The intended path remains:
-
-1. add module registration
-2. add file registration
-3. add field mappings
-4. add judge routing
-5. add task-specific logic only if configuration cannot express the behavior
-
-No main-runner rewrite should be required.
-
-## Maintenance
-
-The canonical team maintenance guide is:
-
-- `docs/TEAM_MAINTENANCE_GUIDE.zh-CN.md`
-
-That document explains what each maintained directory is for, which paths are runtime-only, and what should or should not be committed.
-
-## Status
-
-Implemented:
-
-- config system
-- file registry
-- JSONL/XLSX/YAML loaders
-- unified sample/result schema
-- provider abstraction
-- concurrent runner
-- retries and checkpoint resume
-- raw/judged/summary/log outputs
-- rule judges for objective tasks
-- `LLM-as-a-Judge` execution path for subjective tasks
-- built-in basic-education bridge on top of the internal runtime module
-
-Still intentionally unfinished:
-
-- production-grade adapters for every external vendor
-- finalized subjective judge rubrics and prompts
-- complete future-module integration beyond the current registered files
 
 ## License
 
