@@ -2,8 +2,8 @@ enabled: true
 module_name: 基本教育
 runtime_python: python
 runtime_cli_module: elbench.basic_education_runtime.cli.main
-command_timeout_seconds: 7200
-continue_on_error: false
+command_timeout_seconds: 14400
+continue_on_error: true
 workspace_root: outputs/basic_education
 test_endpoint_model_id: qwen-test
 evaluator_model_id: null

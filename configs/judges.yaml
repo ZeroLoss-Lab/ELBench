@@ -15,7 +15,7 @@ tasks:
     mode: llm
     template: adversarial_safety
   highlevel_edu:
-    mode: llm
+    mode: rule
     template: highlevel_edu
   highlevel_omni:
     mode: rule

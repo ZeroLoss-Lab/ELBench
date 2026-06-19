@@ -3,7 +3,7 @@ data_root: data/benchmark_root
 output_root: outputs
 default_run:
   max_concurrency: 100
-  checkpoint_interval: 50
+  checkpoint_interval: 1
   log_every_n: 50
   judge_enabled: true
   summary_enabled: true
