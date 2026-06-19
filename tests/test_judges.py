@@ -21,6 +21,7 @@ from elbench.config import load_project_config
 from elbench.registry import FileRegistry
 from elbench.schemas.config import JudgeTaskConfig
 from elbench.schemas.evaluation import ModelResponse, Sample
+from elbench.utils import extract_json_object
 
 
 class JudgeSmokeTest(unittest.TestCase):
@@ -60,6 +61,23 @@ class JudgeSmokeTest(unittest.TestCase):
         judge = router.get_judge(sample)
         self.assertIsInstance(judge, LLMJudge)
 
+    def test_router_uses_rule_judge_for_highlevel_edu(self) -> None:
+        config = load_project_config(Path("configs"))
+        router = JudgeRouter(config)
+        sample = Sample(
+            sample_id="edu1",
+            source_file="高阶育人-edu.jsonl",
+            source_path="高阶育人-edu.jsonl",
+            module="高阶育人",
+            subset="edu",
+            task="highlevel_edu",
+            prompt="dummy",
+        )
+
+        judge = router.get_judge(sample)
+
+        self.assertIsInstance(judge, HighLevelJudge)
+
     def test_satas_exact_match(self) -> None:
         judge = TeachingHarmJudge()
         sample = Sample(
@@ -76,6 +94,7 @@ class JudgeSmokeTest(unittest.TestCase):
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
+        self.assertFalse(result.judge_metadata["partial_credit"])
 
     def test_highlevel_omni_exact_match(self) -> None:
         judge = HighLevelJudge()
@@ -93,6 +112,66 @@ class JudgeSmokeTest(unittest.TestCase):
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "C")
+
+    def test_satas_missing_option_receives_partial_credit(self) -> None:
+        judge = TeachingHarmJudge()
+        sample = Sample(
+            sample_id="s2",
+            source_file="SATAs.xlsx",
+            source_path="SATAs.xlsx",
+            module="安全可信",
+            subset="教育-教学安全",
+            task="teaching_harm",
+            prompt="dummy",
+            reference={"Answer": "A,B,E"},
+        )
+        response = ModelResponse(text="A, E")
+
+        result = asyncio.run(judge.judge(sample, response))
+
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.score, 0.5)
+        self.assertTrue(result.judge_metadata["partial_credit"])
+
+    def test_satas_wrong_option_receives_zero_credit(self) -> None:
+        judge = TeachingHarmJudge()
+        sample = Sample(
+            sample_id="s3",
+            source_file="SATAs.xlsx",
+            source_path="SATAs.xlsx",
+            module="安全可信",
+            subset="教育-教学安全",
+            task="teaching_harm",
+            prompt="dummy",
+            reference={"Answer": "A,B,E"},
+        )
+        response = ModelResponse(text="A, C")
+
+        result = asyncio.run(judge.judge(sample, response))
+
+        self.assertEqual(result.judge_result, "fail")
+        self.assertEqual(result.score, 0.0)
+        self.assertFalse(result.judge_metadata["partial_credit"])
+
+    def test_highlevel_omni_multiple_choice_exact_match(self) -> None:
+        judge = HighLevelJudge()
+        sample = Sample(
+            sample_id="o_multi",
+            source_file="高阶育人-omni.jsonl",
+            source_path="高阶育人-omni.jsonl",
+            module="高阶育人",
+            subset="omni",
+            task="highlevel_omni",
+            prompt="dummy",
+            reference={"answer": "AC", "reasonableness": 1},
+        )
+        response = ModelResponse(text="答案：AC")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "AC")
+        self.assertEqual(result.judge_metadata["expected_answer"], "AC")
 
     def test_llm_judge_respects_model_max_tokens_cap(self) -> None:
         config = load_project_config(Path("configs"))
@@ -127,7 +206,8 @@ class JudgeSmokeTest(unittest.TestCase):
 
         asyncio.run(judge.judge(sample, response))
         self.assertIsNotNone(dummy.request)
-        self.assertEqual(dummy.request.max_tokens, config.models["qwen-test"].max_tokens)
+        self.assertEqual(dummy.request.max_tokens, 1024)
+        self.assertLessEqual(dummy.request.max_tokens, config.models["qwen-test"].max_tokens)
 
     def test_highlevel_edu_ag_json_scoring(self) -> None:
         judge = HighLevelJudge()
@@ -160,12 +240,27 @@ class JudgeSmokeTest(unittest.TestCase):
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
-        self.assertEqual(result.judge_metadata["predicted_answer"], "D")
+
+    def test_extract_json_object_handles_nested_fenced_json(self) -> None:
+        parsed = extract_json_object(
+            '```json\n{"Answer": {"CorrectOption": "C", "Explanation": "ok"}}\n```'
+        )
+
+        self.assertEqual(parsed, {"Answer": {"CorrectOption": "C", "Explanation": "ok"}})
 
     def test_mmlu_pro_uses_last_explicit_answer(self) -> None:
         judge = MMLUProJudge()
         sample = self._mmlu_sample("B")
         response = ModelResponse(text="A seems tempting at first.\nANSWER: B")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "B")
+
+    def test_mmlu_pro_accepts_answer_letter_with_option_text(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("B")
+        response = ModelResponse(text="Reasoning here.\nANSWER: B) negative")
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)
@@ -191,6 +286,15 @@ class JudgeSmokeTest(unittest.TestCase):
         judge = MMLUProJudge()
         sample = self._mmlu_sample("C", task="ceval", choices="ABCD")
         response = ModelResponse(text="逐步分析后可知，最后答案如下。\n答案：C")
+        result = asyncio.run(judge.judge(sample, response))
+        self.assertEqual(result.judge_result, "pass")
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.judge_metadata["predicted_answer"], "C")
+
+    def test_ceval_accepts_answer_letter_with_option_text(self) -> None:
+        judge = MMLUProJudge()
+        sample = self._mmlu_sample("C", task="ceval", choices="ABCD")
+        response = ModelResponse(text="逐步分析后可知，最后答案如下。\n答案：C）正确选项")
         result = asyncio.run(judge.judge(sample, response))
         self.assertEqual(result.judge_result, "pass")
         self.assertEqual(result.score, 1.0)

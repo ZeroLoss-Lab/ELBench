@@ -2,6 +2,7 @@ import logging
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -11,6 +12,7 @@ if str(SRC) not in sys.path:
 
 from elbench.config import load_project_config  # noqa: E402
 from elbench.basic_education_runtime.cli.eval import _metric_fields_from_evals  # noqa: E402
+from elbench.basic_education_runtime.entity import AgentConfig, AgentMemoryConfig, ExportFormat, Prompt  # noqa: E402
 from elbench.basic_education_runtime.router import any_keyword_route  # noqa: E402
 from elbench.basic_education_runtime.utils import content_to_text, remove_think  # noqa: E402
 from elbench.execution.basic_education import (  # noqa: E402
@@ -124,10 +126,41 @@ class BasicEducationBridgeTest(unittest.TestCase):
             project_config.models["qwen-test"].api_base,
         )
         self.assertEqual(models_section["eval"]["model"], project_config.models["qwen-test"].model_name)
-        self.assertEqual(models_section["stu"]["kargs"]["max_tokens"], 160)
-        self.assertEqual(models_section["eval"]["kargs"]["max_tokens"], 160)
+        self.assertEqual(models_section["stu"]["kargs"]["max_tokens"], 512)
+        self.assertEqual(models_section["eval"]["kargs"]["max_tokens"], 1024)
+        self.assertEqual(
+            models_section["eval"]["kargs"]["extra_body"],
+            {
+                "chat_template_kwargs": {"enable_thinking": False},
+                "served_model_name": "qwen3.6-35B-sft-v1",
+            },
+        )
         self.assertEqual(rendered["globals"]["recursion_limit"], 20)
         self.assertEqual(rendered["evaluation"]["model"], "eval")
+
+    def test_runtime_template_uses_target_model_concurrency_cap(self) -> None:
+        project_config = load_project_config(ROOT / "configs")
+        executor = BasicEducationExecutor(
+            project_config=project_config,
+            model_config=project_config.models["innospark-235b"],
+            logger=logging.getLogger("test-basic-education"),
+        )
+        scenario = next(
+            item
+            for item in executor.config.scenarios
+            if item.scenario_id == "contextualized_question_generation"
+        )
+        template_data = executor._read_yaml_file(scenario.template_path)
+
+        with patch("elbench.execution.basic_education.get_api_key", return_value="test-key"):
+            rendered = executor._render_runtime_template(
+                template_data=template_data,
+                scenario=scenario,
+                memory_path=ROOT / "tmp_test_artifacts" / "basic_education_question_memory",
+                max_samples=1,
+            )
+
+        self.assertEqual(rendered["globals"]["concurrency"], 1)
 
     def test_content_to_text_ignores_reasoning_only_blocks(self) -> None:
         content = [{"type": "reasoning", "summary": [], "text": "hidden"}]
@@ -150,10 +183,99 @@ class BasicEducationBridgeTest(unittest.TestCase):
         self.assertTrue(route(state))
 
 
+    def test_agent_skips_messages_that_become_empty_after_reasoning_cleanup(self) -> None:
+        import asyncio
+        from langchain_core.messages import AIMessage, HumanMessage
+        from elbench.basic_education_runtime import config as runtime_config
+
+        runtime_config.CONFIG = SimpleNamespace(
+            globals=SimpleNamespace(
+                retry=SimpleNamespace(attempt=1, interval=0),
+                model_call_timeout_seconds=300,
+            )
+        )
+        from elbench.basic_education_runtime.agent import _init_agent_from_dict
+
+        class CapturingModel:
+            def __init__(self) -> None:
+                self.messages = []
+
+            async def ainvoke(self, messages):
+                self.messages = messages
+                return AIMessage(content="ok")
+
+        model = CapturingModel()
+        agent = _init_agent_from_dict(
+            AgentConfig(
+                model="teacher",
+                prompt=[Prompt(role="system", content="Teach.")],
+                memory=AgentMemoryConfig(enable=False, keep_turns=3),
+            ),
+            {"teacher": model},
+            "teacher",
+        )
+
+        state = {
+            "messages": [
+                AIMessage(
+                    content=[{"type": "reasoning", "summary": [], "text": "hidden"}],
+                    name="teacher",
+                ),
+                HumanMessage(content="Please continue.", name="student"),
+            ]
+        }
+
+        asyncio.run(agent(state))
+
+        contents = [getattr(message, "content", "") for message in model.messages]
+        self.assertEqual(contents, ["Teach.", "Please continue."])
+
+
 class BasicEducationEvalCliHelpersTest(unittest.TestCase):
     def test_metric_fields_from_evals_ignores_empty_results(self) -> None:
         self.assertEqual(_metric_fields_from_evals([{}, {}]), [])
         self.assertEqual(_metric_fields_from_evals([{}, {"a": 1, "b": 2}]), ["a", "b"])
+
+    def test_evaluation_messages_add_user_prompt_when_template_only_has_system(self) -> None:
+        from elbench.basic_education_runtime import config as runtime_config
+
+        runtime_config.CONFIG = SimpleNamespace(
+            globals=SimpleNamespace(
+                retry=SimpleNamespace(attempt=1, interval=0),
+                model_call_timeout_seconds=300,
+            )
+        )
+        from elbench.basic_education_runtime.evaluation import _build_evaluation_messages
+
+        exported = ExportFormat(
+            task={"query": "Explain decimals"},
+            messages=[Prompt(role="teacher", content="Decimals are parts of one.")],
+        )
+
+        messages = _build_evaluation_messages(
+            system_prompt="Evaluate this output:\n{messages.as_dialog()}\nTask: {task.query}",
+            other_prompts=[],
+            exported_result=exported,
+        )
+
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0]["role"], "user")
+        self.assertIn("teacher: Decimals are parts of one.", messages[0]["content"])
+        self.assertIn("Task: Explain decimals", messages[0]["content"])
+
+    def test_replace_template_preserves_non_placeholder_braces(self) -> None:
+        exported = ExportFormat(
+            task={"query": "Solve the set example"},
+            messages=[Prompt(role="teacher", content="The answer set is {1}.")],
+        )
+
+        rendered = exported.replace_template(
+            "Evaluate {task.query}\n{messages.as_dialog()}\nDo not treat {1} as a template."
+        )
+
+        self.assertIn("Evaluate Solve the set example", rendered)
+        self.assertIn("teacher: The answer set is {1}.", rendered)
+        self.assertIn("Do not treat {1} as a template.", rendered)
 
 
 if __name__ == "__main__":
