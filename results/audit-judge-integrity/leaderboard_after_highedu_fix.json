@@ -1,0 +1,125 @@
+{
+  "rows": [
+    {
+      "model": "claude-opus-4-8",
+      "rejudged": true,
+      "edu_old": 62.8,
+      "edu_new": 87.8,
+      "omni": 51.2,
+      "high_old": 57.0,
+      "high_new": 69.5,
+      "overall_old": 77.38,
+      "overall_new": 80.5
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "rejudged": true,
+      "edu_old": 68.8,
+      "edu_new": 92.0,
+      "omni": 47.0,
+      "high_old": 57.9,
+      "high_new": 69.5,
+      "overall_old": 76.56,
+      "overall_new": 79.45
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "rejudged": true,
+      "edu_old": 63.2,
+      "edu_new": 92.6,
+      "omni": 50.4,
+      "high_old": 56.8,
+      "high_new": 71.5,
+      "overall_old": 75.53,
+      "overall_new": 79.21
+    },
+    {
+      "model": "doubao-seed-2.0-pro",
+      "rejudged": true,
+      "edu_old": 70.6,
+      "edu_new": 94.2,
+      "omni": 52.8,
+      "high_old": 61.7,
+      "high_new": 73.5,
+      "overall_old": 75.26,
+      "overall_new": 78.21
+    },
+    {
+      "model": "glm-5.1",
+      "rejudged": true,
+      "edu_old": 63.0,
+      "edu_new": 93.8,
+      "omni": 56.2,
+      "high_old": 59.6,
+      "high_new": 75.0,
+      "overall_old": 71.91,
+      "overall_new": 75.75
+    },
+    {
+      "model": "gpt-5.4",
+      "rejudged": false,
+      "edu_old": 94.2,
+      "edu_new": 94.2,
+      "omni": 56.0,
+      "high_old": 75.1,
+      "high_new": 75.1,
+      "overall_old": 73.07,
+      "overall_new": 73.07
+    },
+    {
+      "model": "gemini-3.5-flash",
+      "rejudged": false,
+      "edu_old": 95.0,
+      "edu_new": 95.0,
+      "omni": 55.6,
+      "high_old": 75.3,
+      "high_new": 75.3,
+      "overall_old": 75.71,
+      "overall_new": 75.71
+    },
+    {
+      "model": "innospark-235b",
+      "rejudged": false,
+      "edu_old": 81.0,
+      "edu_new": 81.0,
+      "omni": 50.8,
+      "high_old": 65.9,
+      "high_new": 65.9,
+      "overall_old": 71.97,
+      "overall_new": 71.97
+    },
+    {
+      "model": "safe-innospark",
+      "rejudged": false,
+      "edu_old": 82.4,
+      "edu_new": 82.4,
+      "omni": 48.0,
+      "high_old": 65.2,
+      "high_new": 65.2,
+      "overall_old": 72.62,
+      "overall_new": 72.62
+    }
+  ],
+  "old_rank": {
+    "claude-opus-4-8": 1,
+    "deepseek-v4-pro": 2,
+    "gemini-3.5-flash": 3,
+    "deepseek-v4-flash": 4,
+    "doubao-seed-2.0-pro": 5,
+    "gpt-5.4": 6,
+    "safe-innospark": 7,
+    "innospark-235b": 8,
+    "glm-5.1": 9
+  },
+  "new_rank": {
+    "claude-opus-4-8": 1,
+    "deepseek-v4-pro": 2,
+    "deepseek-v4-flash": 3,
+    "doubao-seed-2.0-pro": 4,
+    "glm-5.1": 5,
+    "gemini-3.5-flash": 6,
+    "gpt-5.4": 7,
+    "safe-innospark": 8,
+    "innospark-235b": 9
+  }
+}

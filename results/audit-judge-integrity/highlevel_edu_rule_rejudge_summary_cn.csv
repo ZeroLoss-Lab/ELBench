@@ -1,0 +1,10 @@
+﻿??,????,highlevel_edu??,??????,highlevel_edu???,????judged,????failures,summary_highlevel???
+deepseek-r1-250528,campaign-official-deepseek-r1-250528-highlevel-edu-rule-rejudge,500,404,0.654,1871,67,0.654
+deepseek-r1-250528,campaign-official-deepseek-r1-250528-highlevel-edu-rule-rejudge-highlevel-edu-rule-rejudge,500,0,0.654,1871,0,0.654
+deepseek-v3.2,campaign-official-deepseek-v3.2-highlevel-edu-rule-rejudge,500,336,0.54,1942,0,0.54
+doubao-seed-2-0-pro-260215,campaign-official-doubao-seed-2-0-pro-260215-highlevel-edu-rule-rejudge,500,443,0.758,1942,0,0.758
+gemini-3.1-pro-preview,campaign-official-gemini-3.1-pro-preview-highlevel-edu-rule-rejudge,500,436,0.744,1942,0,0.744
+gpt-5.4,campaign-official-gpt-5.4-highlevel-edu-rule-rejudge,500,406,0.668,2942,0,0.668
+innospark-235b,campaign-official-innospark-235b-highlevel-edu-rule-rejudge,500,368,0.584,2202,0,0.584
+kimi-k2.6,campaign-official-kimi-k2.6-highlevel-edu-rule-rejudge,500,417,0.698,1800,100,0.698
+qwen3.6-35B-sft-v1,campaign-official-qwen3.6-35B-sft-v1-highlevel-edu-rule-rejudge,500,423,0.594,2942,0,0.594

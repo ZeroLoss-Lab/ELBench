@@ -1,0 +1,169 @@
+{
+  "generated_at": "2026-06-08T20:27:16.801625",
+  "current_path": "D:\\Study\\sii\\PJ-OC\\data\\benchmark_root\\安全可信\\教育-教学安全\\SATAs（150）.xlsx",
+  "corrected_path": "D:\\Study\\Projects\\AAAI2025\\correct\\EduGuardBench\\Dataset\\SATAs.xlsx",
+  "sampled_rows": 150,
+  "changed_answers": 0,
+  "models": {
+    "claude-opus-4-8": {
+      "run_id": "campaign-official-claude-opus-4-8",
+      "judged_total": 2942,
+      "raw_total": 2942,
+      "satas_judged": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 71
+      },
+      "satas_raw": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 0
+      },
+      "summary_total_failures": 0
+    },
+    "deepseek-v4-pro": {
+      "run_id": "campaign-official-deepseek-v4-pro",
+      "judged_total": 2942,
+      "raw_total": 2942,
+      "satas_judged": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 86
+      },
+      "satas_raw": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 0
+      },
+      "summary_total_failures": 0
+    },
+    "gemini-3.5-flash": {
+      "run_id": "campaign-official-gemini-3.5-flash-aime65536-highlevel-llmjudge",
+      "judged_total": 2942,
+      "raw_total": 2942,
+      "satas_judged": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 78
+      },
+      "satas_raw": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 0
+      },
+      "summary_total_failures": 0
+    },
+    "deepseek-v4-flash": {
+      "run_id": "campaign-official-deepseek-v4-flash",
+      "judged_total": 2942,
+      "raw_total": 2942,
+      "satas_judged": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 86
+      },
+      "satas_raw": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 0
+      },
+      "summary_total_failures": 0
+    },
+    "doubao-seed-2.0-pro": {
+      "run_id": "campaign-official-doubao-seed-2.0-pro",
+      "judged_total": 2942,
+      "raw_total": 2942,
+      "satas_judged": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 75
+      },
+      "satas_raw": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 0
+      },
+      "summary_total_failures": 0
+    },
+    "gpt-5.4": {
+      "run_id": "campaign-official-gpt-5.4-aime65536-highlevel-llmjudge-safety-strict-llmjudge",
+      "judged_total": 2942,
+      "raw_total": 2942,
+      "satas_judged": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 65
+      },
+      "satas_raw": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 0
+      },
+      "summary_total_failures": 0
+    },
+    "safe-innospark": {
+      "run_id": "campaign-official-safe-innospark-aime65536-highlevel-llmjudge",
+      "judged_total": 2942,
+      "raw_total": 2942,
+      "satas_judged": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 56
+      },
+      "satas_raw": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 0
+      },
+      "summary_total_failures": 0
+    },
+    "innospark-235b": {
+      "run_id": "campaign-official-innospark-235b-aime65536-highlevel-llmjudge-safety-fill-targeted-safety-strict-llmjudge",
+      "judged_total": 2942,
+      "raw_total": 2942,
+      "satas_judged": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 60
+      },
+      "satas_raw": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 0
+      },
+      "summary_total_failures": 0
+    },
+    "glm-5.1": {
+      "run_id": "campaign-official-glm-5.1",
+      "judged_total": 2942,
+      "raw_total": 2942,
+      "satas_judged": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 79
+      },
+      "satas_raw": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 0
+      },
+      "summary_total_failures": 0
+    },
+    "qwen3.6-35B-sft-v1": {
+      "run_id": "campaign-official-qwen3.6-35B-sft-v1-aime65536-highlevel-llmjudge-safety-strict-llmjudge",
+      "judged_total": 2942,
+      "raw_total": 2942,
+      "satas_judged": {
+        "matched": 150,
+        "changed_judgments": 150,
+        "pass_count": 70
+      },
+      "satas_raw": {
+        "matched": 150,
+        "changed_judgments": 0,
+        "pass_count": 0
+      },
+      "summary_total_failures": 0
+    }
+  }
+}

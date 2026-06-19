@@ -1,0 +1,57 @@
+[
+  {
+    "model": "claude-opus-4-8",
+    "edu_n": 500,
+    "old_pass_rate": 0.628,
+    "new_pass_rate": 0.878,
+    "new_avg_score": 0.865,
+    "flips": 159,
+    "fail_to_pass": 142,
+    "judge_failures": 0,
+    "target_dir": "outputs\\judged_results\\campaign-official-claude-opus-4-8-highedu-llmjudge-fix"
+  },
+  {
+    "model": "deepseek-v4-pro",
+    "edu_n": 500,
+    "old_pass_rate": 0.688,
+    "new_pass_rate": 0.92,
+    "new_avg_score": 0.904,
+    "flips": 178,
+    "fail_to_pass": 147,
+    "judge_failures": 0,
+    "target_dir": "outputs\\judged_results\\campaign-official-deepseek-v4-pro-highedu-llmjudge-fix"
+  },
+  {
+    "model": "deepseek-v4-flash",
+    "edu_n": 500,
+    "old_pass_rate": 0.632,
+    "new_pass_rate": 0.926,
+    "new_avg_score": 0.9101,
+    "flips": 203,
+    "fail_to_pass": 175,
+    "judge_failures": 0,
+    "target_dir": "outputs\\judged_results\\campaign-official-deepseek-v4-flash-highedu-llmjudge-fix"
+  },
+  {
+    "model": "doubao-seed-2.0-pro",
+    "edu_n": 500,
+    "old_pass_rate": 0.706,
+    "new_pass_rate": 0.942,
+    "new_avg_score": 0.9231,
+    "flips": 162,
+    "fail_to_pass": 140,
+    "judge_failures": 0,
+    "target_dir": "outputs\\judged_results\\campaign-official-doubao-seed-2.0-pro-highedu-llmjudge-fix"
+  },
+  {
+    "model": "glm-5.1",
+    "edu_n": 500,
+    "old_pass_rate": 0.63,
+    "new_pass_rate": 0.938,
+    "new_avg_score": 0.9225,
+    "flips": 198,
+    "fail_to_pass": 176,
+    "judge_failures": 0,
+    "target_dir": "outputs\\judged_results\\campaign-official-glm-5.1-highedu-llmjudge-fix"
+  }
+]

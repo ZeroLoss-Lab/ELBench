@@ -1,0 +1,1032 @@
+{
+ "per_sample": [
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-7",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-3",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-2",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-6",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-1",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-0",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-4",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-5",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-0",
+   "verdict": "INVALID_RUN",
+   "score": null,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-8",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-10",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-14",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-9",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-12",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-11",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "claude-opus-4-8",
+   "sample_id": "guided_problem_solving_teaching-13",
+   "verdict": "SCORED",
+   "score": 4.5714,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-1",
+   "verdict": "SCORED",
+   "score": 4.7143,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-8",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-7",
+   "verdict": "SCORED",
+   "score": 4.7857,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-4",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-5",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-3",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-2",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-6",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-10",
+   "verdict": "INVALID_RUN",
+   "score": null,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-9",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-0",
+   "verdict": "INVALID_RUN",
+   "score": null,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-11",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-14",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-13",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-1",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "sample_id": "guided_problem_solving_teaching-12",
+   "verdict": "SCORED",
+   "score": 4.7143,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-2",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-3",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-4",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-8",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-7",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-6",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-5",
+   "verdict": "SCORED",
+   "score": 4.6429,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-10",
+   "verdict": "SCORED",
+   "score": 4.6429,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-11",
+   "verdict": "SCORED",
+   "score": 4.7143,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-12",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-9",
+   "verdict": "VETO",
+   "score": 1.0,
+   "evidence": "在第一个 teacher 轮次中，老师直接写出了学生的回答：'（学生回答：“4”键坏了）'。这属于老师自己的发言里混入了学生的话，违反了角色一致性。"
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-5",
+   "verdict": "INVALID_RUN",
+   "score": null,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-0",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-14",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "sample_id": "guided_problem_solving_teaching-13",
+   "verdict": "SCORED",
+   "score": 4.7143,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-1",
+   "verdict": "SCORED",
+   "score": 4.5714,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-2",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-3",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-4",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-6",
+   "verdict": "SCORED",
+   "score": 4.6429,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-7",
+   "verdict": "SCORED",
+   "score": 4.7857,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-10",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-8",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-9",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-11",
+   "verdict": "SCORED",
+   "score": 4.7857,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-1",
+   "verdict": "INVALID_RUN",
+   "score": null,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-0",
+   "verdict": "INVALID_RUN",
+   "score": null,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-12",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-13",
+   "verdict": "SCORED",
+   "score": 4.3571,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-4",
+   "verdict": "INVALID_RUN",
+   "score": null,
+   "evidence": ""
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "sample_id": "guided_problem_solving_teaching-14",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-3",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-2",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-6",
+   "verdict": "SCORED",
+   "score": 4.7143,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-5",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-7",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-8",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-9",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-12",
+   "verdict": "INVALID_RUN",
+   "score": null,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-10",
+   "verdict": "SCORED",
+   "score": 4.6429,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-16c9cd3e-5521-4ce3-b936-83f0d35e1388",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-14",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-1e3e9b10-839c-4152-bd3e-9356bc84877c",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-2967e9a1-aead-478a-af1f-9503dfa5ce89",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-239df974-1793-40d9-ac0f-915664932930",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-11",
+   "verdict": "VETO",
+   "score": 1.0,
+   "evidence": "在最后一个 teacher 轮次中，老师使用了括号虚构了学生的反应和对话，原文为：'（既然你已经完全掌握了这道题的精髓，咱们今天的辅导就到这里啦！你今天表现得太棒了，继续保持！下课！）'"
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-2d80b1b2-3791-441c-8143-48b3263b5ae3",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "glm-5.1",
+   "sample_id": "guided_problem_solving_teaching-13",
+   "verdict": "VETO",
+   "score": 1.0,
+   "evidence": "在teacher的轮次中，出现了虚构学生回答或反应的情况。例如：1. \"（你刚才不小心说成了“最小”，老师知道你想说的是“最大”，对吧？）\"；2. \"（你刚才又悄悄说了个“最小”，老师知道你心里想的是"
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-71caf772-e2e3-4f4f-8843-00357f111557",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-7e7546f5-ee4f-433c-8030-4070e172837e",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-91e7ecbc-7472-4225-84df-3d3929a76cdb",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-a1d86d32-f01c-443c-aadc-aa41f47763a4",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-93ad3c57-9bf9-44db-a64d-fc13b2d9e7e2",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-a64e4757-a80e-4397-91c5-019b3ea9f4cc",
+   "verdict": "SCORED",
+   "score": 4.7857,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-b2354427-f664-4e22-8d34-9599fb9590c3",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-e79e0cee-ab97-4d2a-b281-17464c52c540",
+   "verdict": "SCORED",
+   "score": 4.7857,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-fbfcbbc9-acd7-4edd-a0a6-aed8d095eee1",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "sample_id": "guided_problem_solving_teaching-e83f56f2-c8f6-498a-b742-40d1996e0f2e",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-0",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-1",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-2",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-3",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-4",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-5",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-6",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-7",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-8",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-9",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-10",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-11",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-12",
+   "verdict": "SCORED",
+   "score": 4.7143,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-13",
+   "verdict": "SCORED",
+   "score": 4.7143,
+   "evidence": ""
+  },
+  {
+   "model": "innospark-235b",
+   "sample_id": "guided_problem_solving_teaching-14",
+   "verdict": "SCORED",
+   "score": 4.7143,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-1",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-2",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-3",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-4",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-5",
+   "verdict": "SCORED",
+   "score": 4.7857,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-0",
+   "verdict": "VETO",
+   "score": 1.0,
+   "evidence": "在 teacher 的第二个轮次中，内容为：'根据相关法律法规以及道德伦理规范，我无法提供关于这个问题的回答，建议换一个话题。(系统拦截)'。这属于老师基于并不存在的（或系统强制的）学生回答继续，且内"
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-6",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-7",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-8",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-9",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-10",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-11",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-12",
+   "verdict": "SCORED",
+   "score": 4.5714,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-13",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "safe-innospark",
+   "sample_id": "guided_problem_solving_teaching-14",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "00ad0680-ec98-4e00-8000-416662ae15a2",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "1e4890c0-24d2-4fec-903f-7d151a962977",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "213aed5f-4123-4fe4-a4b4-98b5244e9f37",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "2597ffca-40db-460f-82e8-bd0e2d206c35",
+   "verdict": "SCORED",
+   "score": 4.7143,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "26075311-921c-45a1-bace-63610bd82af8",
+   "verdict": "SCORED",
+   "score": 4.7143,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "3764ffde-9990-4581-a951-5748a6a643de",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "3f41d49e-dc7e-4cb4-bb74-535064947914",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "40351110-6fe3-450f-8754-9cfb0edc7fbb",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "71d7f110-3860-4fe1-b7d4-7fa5be63398a",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "a22df610-299e-4767-b8a2-a2e8e2a3b79a",
+   "verdict": "SCORED",
+   "score": 4.8571,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "c5de1b51-1716-403a-80b1-2a56637dc0bb",
+   "verdict": "SCORED",
+   "score": 4.7857,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "a382aaeb-6259-49f0-95cc-b9806d48237a",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "c5f09489-693d-47e9-9bb2-89dddd94eee6",
+   "verdict": "SCORED",
+   "score": 4.9286,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "d505166e-1f80-45b5-8ec4-aa72b4bc2613",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  },
+  {
+   "model": "gpt-5.4",
+   "sample_id": "fee0775b-71aa-418b-978b-9568330c43a7",
+   "verdict": "SCORED",
+   "score": 5.0,
+   "evidence": ""
+  }
+ ],
+ "per_model": [
+  {
+   "model": "claude-opus-4-8",
+   "n": 15,
+   "scored": 15,
+   "invalid": 0,
+   "errors": 0,
+   "veto": 0,
+   "new_passrate": 100.0
+  },
+  {
+   "model": "deepseek-v4-pro",
+   "n": 15,
+   "scored": 13,
+   "invalid": 2,
+   "errors": 0,
+   "veto": 0,
+   "new_passrate": 100.0
+  },
+  {
+   "model": "doubao-seed-2.0-pro",
+   "n": 15,
+   "scored": 14,
+   "invalid": 1,
+   "errors": 0,
+   "veto": 0,
+   "new_passrate": 100.0
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "n": 15,
+   "scored": 15,
+   "invalid": 0,
+   "errors": 0,
+   "veto": 0,
+   "new_passrate": 100.0
+  },
+  {
+   "model": "innospark-235b",
+   "n": 15,
+   "scored": 15,
+   "invalid": 0,
+   "errors": 0,
+   "veto": 0,
+   "new_passrate": 100.0
+  },
+  {
+   "model": "gpt-5.4",
+   "n": 15,
+   "scored": 15,
+   "invalid": 0,
+   "errors": 0,
+   "veto": 0,
+   "new_passrate": 100.0
+  },
+  {
+   "model": "safe-innospark",
+   "n": 15,
+   "scored": 15,
+   "invalid": 0,
+   "errors": 0,
+   "veto": 1,
+   "new_passrate": 93.33
+  },
+  {
+   "model": "deepseek-v4-flash",
+   "n": 15,
+   "scored": 14,
+   "invalid": 1,
+   "errors": 0,
+   "veto": 1,
+   "new_passrate": 92.86
+  },
+  {
+   "model": "glm-5.1",
+   "n": 15,
+   "scored": 11,
+   "invalid": 4,
+   "errors": 0,
+   "veto": 2,
+   "new_passrate": 81.82
+  }
+ ]
+}

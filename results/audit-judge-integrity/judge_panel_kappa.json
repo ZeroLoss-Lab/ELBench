@@ -1,0 +1,66 @@
+{
+ "panel": [
+  "deepseek-v4-flash",
+  "gpt-5.4",
+  "gemini-3.5-flash"
+ ],
+ "n": 80,
+ "pairwise_kappa": {
+  "deepseek-v4-flash__gpt-5.4": {
+   "kappa": 0.02379499694935929,
+   "n": 80
+  },
+  "deepseek-v4-flash__gemini-3.5-flash": {
+   "kappa": 1.0,
+   "n": 1
+  },
+  "gpt-5.4__gemini-3.5-flash": {
+   "kappa": 1.0,
+   "n": 1
+  }
+ },
+ "vs_primary_kappa": {
+  "deepseek-v4-flash": {
+   "kappa": 0.02499999999999991,
+   "n": 80
+  },
+  "gpt-5.4": {
+   "kappa": 0.125,
+   "n": 80
+  },
+  "gemini-3.5-flash": {
+   "kappa": 1.0,
+   "n": 1
+  }
+ },
+ "krippendorff_alpha_panel": -0.2649450023912001,
+ "panel_majority_vs_primary_kappa": {
+  "kappa": 0.125,
+  "n": 80
+ },
+ "panel_majority_pass_rate": 0.4875,
+ "primary_pass_rate": 0.5,
+ "self_preference": {
+  "deepseek-v4-flash": {
+   "own_family_pass_rate": 1.0,
+   "n_own": 11,
+   "other_family_pass_rate": 0.9855072463768116,
+   "n_other": 69,
+   "delta": 0.01449275362318836
+  },
+  "gpt-5.4": {
+   "own_family_pass_rate": 0.5925925925925926,
+   "n_own": 27,
+   "other_family_pass_rate": 0.4339622641509434,
+   "n_other": 53,
+   "delta": 0.15863032844164915
+  },
+  "gemini-3.5-flash": {
+   "own_family_pass_rate": 1.0,
+   "n_own": 1,
+   "other_family_pass_rate": null,
+   "n_other": 0,
+   "delta": null
+  }
+ }
+}

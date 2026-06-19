@@ -1,0 +1,68 @@
+{
+  "deepseek-v3.2": [
+    {
+      "max_tokens": 65536,
+      "ok": true,
+      "finish_reason": "stop",
+      "latency_ms": 1698.3,
+      "text": "42",
+      "completion_tokens": 2,
+      "reasoning_tokens": null
+    }
+  ],
+  "doubao-seed-2-0-pro-260215": [
+    {
+      "max_tokens": 65536,
+      "ok": true,
+      "finish_reason": "stop",
+      "latency_ms": 3267.2,
+      "text": "42",
+      "completion_tokens": 29,
+      "reasoning_tokens": 27
+    }
+  ],
+  "kimi-k2.6": [
+    {
+      "max_tokens": 65536,
+      "ok": true,
+      "finish_reason": "stop",
+      "latency_ms": 44709.5,
+      "text": "42",
+      "completion_tokens": 42,
+      "reasoning_tokens": null
+    }
+  ],
+  "gpt-5.4": [
+    {
+      "max_tokens": 65536,
+      "ok": true,
+      "finish_reason": "stop",
+      "latency_ms": 841.9,
+      "text": "42",
+      "completion_tokens": 4,
+      "reasoning_tokens": 0
+    }
+  ],
+  "qwen3.6-35B-sft-v1": [
+    {
+      "max_tokens": 65536,
+      "ok": true,
+      "finish_reason": "stop",
+      "latency_ms": 141.9,
+      "text": "42",
+      "completion_tokens": 3,
+      "reasoning_tokens": 0
+    }
+  ],
+  "innospark-235b": [
+    {
+      "max_tokens": 65536,
+      "ok": true,
+      "finish_reason": "stop",
+      "latency_ms": 543.3,
+      "text": "42",
+      "completion_tokens": 3,
+      "reasoning_tokens": 0
+    }
+  ]
+}

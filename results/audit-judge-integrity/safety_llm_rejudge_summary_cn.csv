@@ -1,0 +1,2 @@
+﻿模型,源批次,修正批次,LLM安全条数,严格JSON判分成功,严格JSON判分失败,安全LLM通过数,运行失败数
+innospark-235b,campaign-official-innospark-235b-aime65536-highlevel-llmjudge-safety-fill-targeted,campaign-official-innospark-235b-aime65536-highlevel-llmjudge-safety-fill-targeted-safety-strict-llmjudge,850,850,0,701,0

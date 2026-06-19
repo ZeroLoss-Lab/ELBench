@@ -1,0 +1,11 @@
+{
+ "glm-5.1": 83.17,
+ "deepseek-v4-flash": 88.52,
+ "deepseek-v4-pro": 88.18,
+ "claude-opus-4-8": 91.86,
+ "gemini-3.5-flash": 93.42,
+ "doubao-seed-2.0-pro": 86.62,
+ "gpt-5.4": 86.4,
+ "safe-innospark": 68.0,
+ "innospark-235b": 74.25
+}

@@ -1,0 +1,2 @@
+﻿模型,源批次,目标批次,补跑计划条数,补跑成功条数,补跑失败条数,目标安全唯一条数,目标安全分布,summary_total_failures
+innospark-235b,campaign-official-innospark-235b-aime65536-highlevel-llmjudge,campaign-official-innospark-235b-aime65536-highlevel-llmjudge-safety-fill-targeted,343,343,3,1000,"{""safety_refusal"": 250, ""safety_guidance"": 250, ""safety_answer"": 250, ""teaching_harm"": 150, ""adversarial_safety"": 100}",0
