@@ -17,13 +17,22 @@ class LLMJudge(BaseJudge):
     async def judge(self, sample: Sample, response: ModelResponse) -> JudgeResult:
         template = self._task_config.template or sample.task or "generic"
         prompt = build_judge_prompt(template, sample, response)
+        strict_prompt = (
+            "Return ONLY one valid JSON object. Do not include markdown, chain-of-thought, "
+            "analysis text, comments, or any text outside JSON. "
+            'The first character must be "{" and the last character must be "}".\n\n'
+            f"{prompt}\n"
+            "Return ONLY the JSON object now."
+        )
         judge_response = await self._client.generate(
             sample=sample,
             request=GenerationRequest(
-                prompt=prompt,
+                prompt=strict_prompt,
+                system_prompt="Return JSON only. No reasoning text.",
                 temperature=0,
                 max_tokens=self._judge_max_tokens(),
-                provider_kwargs={},
+                messages=[{"role": "user", "content": strict_prompt}],
+                provider_kwargs={"response_format": {"type": "json_object"}},
             ),
         )
         parsed = extract_json_object(judge_response.text)
@@ -72,8 +81,8 @@ class LLMJudge(BaseJudge):
     def _judge_max_tokens(self) -> int:
         model_config = self._project_config.models[self._judge_model_id()]
         if model_config.max_tokens is None:
-            return 512
-        return min(512, model_config.max_tokens)
+            return 1024
+        return min(1024, model_config.max_tokens)
 
 
 def _coerce_score(value) -> float:

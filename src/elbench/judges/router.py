@@ -45,7 +45,7 @@ class JudgeRouter:
     def _get_rule_judge(self, sample: Sample) -> BaseJudge:
         if sample.module == "安全可信" and sample.task == "teaching_harm":
             return TeachingHarmJudge()
-        if sample.module == "高阶育人" and sample.task == "highlevel_omni":
+        if sample.module == "高阶育人" and sample.task in {"highlevel_edu", "highlevel_omni"}:
             return HighLevelJudge()
         if sample.module == "通用模型" and sample.task in {"mmlu_pro", "ceval"}:
             return MMLUProJudge()

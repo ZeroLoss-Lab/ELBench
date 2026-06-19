@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-
 from elbench.judges.base import BaseJudge
 from elbench.loaders.general_capability_loader import MMLUProJsonlLoader
 from elbench.schemas.evaluation import JudgeResult, ModelResponse, Sample
@@ -33,7 +31,7 @@ class MMLUProJudge(BaseJudge):
     def _extract_answer(self, text: str | None, sample: Sample, valid_letters: list[str]) -> str | None:
         prefixes = ["ANSWER", "FINAL ANSWER"]
         if sample.task == "ceval":
-            prefixes = ["答案", "最终答案", "ANSWER"]
+            prefixes = ["答案", "最终答案", "ANSWER", "FINAL ANSWER"]
         return extract_single_choice_answer(
             text,
             valid_letters,

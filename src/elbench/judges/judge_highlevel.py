@@ -5,9 +5,10 @@ from typing import Any
 from elbench.judges.base import BaseJudge
 from elbench.schemas.evaluation import JudgeResult, ModelResponse, Sample
 from elbench.utils import (
+    extract_choice_answer,
     extract_json_object,
     extract_required_json_keys,
-    extract_single_choice_answer,
+    normalize_choice_answer,
     normalize_text,
     parse_score_value,
     text_similarity,
@@ -28,10 +29,11 @@ class HighLevelJudge(BaseJudge):
         raise ValueError(f"Unsupported high-level task: {sample.task}")
 
     def _judge_omni(self, sample: Sample, response: ModelResponse) -> JudgeResult:
-        predicted_answer = extract_single_choice_answer(
+        predicted_answer = extract_choice_answer(
             response.text,
             list("ABCD"),
             answer_prefixes=["答案", "最终答案", "ANSWER"],
+            allow_multiple=True,
         )
         expected_answer = self._expected_omni_answer(sample)
         passed = predicted_answer is not None and predicted_answer == expected_answer
@@ -49,10 +51,7 @@ class HighLevelJudge(BaseJudge):
 
     def _expected_omni_answer(self, sample: Sample) -> str | None:
         answer = (sample.reference or {}).get("answer")
-        if answer in (None, ""):
-            return None
-        normalized = str(answer).strip().upper()
-        return normalized[0] if normalized else None
+        return normalize_choice_answer(str(answer), list("ABCD"))
 
     def _judge_edu(self, sample: Sample, response: ModelResponse) -> JudgeResult:
         scene = sample.metadata.get("_scene")
