@@ -84,10 +84,14 @@ python scripts/run_benchmark.py run \
 `基本教育` (Basic Education) requires a real API-backed model config; the
 `mock.*` models are for single-turn pipeline smoke checks only.
 
-## Results
+## Data on HuggingFace
 
-The full evaluation results, including per-sample detail, are also released as a
-HuggingFace dataset: [**ZeroLoss-Lab/ELBench-results**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results).
+ELBench is released as two HuggingFace datasets:
+
+- [**ZeroLoss-Lab/ELBench**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench) — the benchmark items (2,939 across the four modules).
+- [**ZeroLoss-Lab/ELBench-results**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results) — the full evaluation results, including per-sample detail.
+
+## Results
 
 Curated, committed outputs live under [`results/`](results/):
 

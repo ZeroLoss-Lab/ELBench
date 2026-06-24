@@ -73,9 +73,14 @@ python scripts/run_benchmark.py run \
 
 `基本教育` 需要真实的 API 模型配置；`mock.*` 模型仅用于单轮流水线冒烟检查。
 
-## 结果
+## HuggingFace 数据集
 
-完整评测结果(含逐样本明细)同时以 HuggingFace 数据集发布：[**ZeroLoss-Lab/ELBench-results**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results)。
+ELBench 以两个 HuggingFace 数据集发布:
+
+- [**ZeroLoss-Lab/ELBench**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench) —— 评测题目集(四模块共 2939 题)。
+- [**ZeroLoss-Lab/ELBench-results**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results) —— 完整评测结果,含逐样本明细。
+
+## 结果
 
 已整理并提交的产出放在 [`results/`](results/) 下：
 
