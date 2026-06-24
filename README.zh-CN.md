@@ -75,6 +75,8 @@ python scripts/run_benchmark.py run \
 
 ## 结果
 
+完整评测结果(含逐样本明细)同时以 HuggingFace 数据集发布：[**ZeroLoss-Lab/ELBench-results**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results)。
+
 已整理并提交的产出放在 [`results/`](results/) 下：
 
 - `audit-judge-integrity/`：勘误后的最终榜、bootstrap 置信区间、评分面板 κ、各模块重判汇总

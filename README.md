@@ -86,6 +86,9 @@ python scripts/run_benchmark.py run \
 
 ## Results
 
+The full evaluation results, including per-sample detail, are also released as a
+HuggingFace dataset: [**ZeroLoss-Lab/ELBench-results**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results).
+
 Curated, committed outputs live under [`results/`](results/):
 
 - `audit-judge-integrity/` — final corrected leaderboard, bootstrap confidence
