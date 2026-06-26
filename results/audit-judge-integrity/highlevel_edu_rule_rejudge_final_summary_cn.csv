@@ -1,7 +1,0 @@
-﻿模型,源批次,修正批次,highlevel_edu条数,规则复判通过,规则复判失败,判分发生变化,highlevel_edu平均分,highlevel_edu通过率,修正后总judged,修正后总failures,状态
-qwen3.6-35B-sft-v1,campaign-official-qwen3.6-35B-sft-v1-aime65536-repair,campaign-official-qwen3.6-35B-sft-v1-aime65536-highlevel-rule,500,297,203,423,0.6523,0.594,2942,0,完成
-gpt-5.4,campaign-official-gpt-5.4-aime65536-repair,campaign-official-gpt-5.4-aime65536-highlevel-rule,500,334,166,406,0.7247,0.668,2942,0,完成
-gemini-3.1-pro-preview,campaign-official-gemini-3.1-pro-preview-aime65536-repair,campaign-official-gemini-3.1-pro-preview-aime65536-highlevel-rule,500,372,128,436,0.7878,0.744,1942,0,完成
-doubao-seed-2-0-pro-260215,campaign-official-doubao-seed-2-0-pro-260215,campaign-official-doubao-seed-2-0-pro-260215-aime65536-highlevel-rule,500,379,121,443,0.8007,0.758,1942,0,完成
-deepseek-v3.2,campaign-official-deepseek-v3.2,campaign-official-deepseek-v3.2-aime65536-highlevel-rule,500,270,230,336,0.5884,0.54,1942,0,完成
-innospark-235b,campaign-official-innospark-235b-aime65536-repair,campaign-official-innospark-235b-aime65536-highlevel-rule,500,292,208,368,0.646,0.584,2505,0,完成

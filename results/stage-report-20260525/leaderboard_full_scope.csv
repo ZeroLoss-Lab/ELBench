@@ -1,2 +1,0 @@
-rank,model_id,run_id,total_judged,total_failures,general_score_pct,highlevel_score_pct,safety_score_pct,basic_score_pct,stage_score_pct,notes
-1,gpt-5.4,full-gpt-5.4-20260519-v2,2942,0,87.07,75.50,71.20,61.55,73.83,cleanest currently available full-scope result

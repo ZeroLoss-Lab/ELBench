@@ -23,8 +23,8 @@
 | 8 | Safe-InnoSpark | **77.0** [76, 78] | 68.0 | 87.6 | 87.3 | 65.2 |
 | 9 | InnoSpark-235B | **76.4** [75, 78] | 74.2 | 78.0 | 87.5 | 65.9 |
 
-各模块、各任务的明细榜、置信区间以及评分可靠性审计都发布在 [`results/`](results/) 下。机器可读的最终榜单是
-[`results/audit-judge-integrity/leaderboard_FINAL.json`](results/audit-judge-integrity/leaderboard_FINAL.json)。
+各模块、各任务的明细榜、置信区间以及评分可靠性审计，以 HuggingFace 数据集
+[ZeroLoss-Lab/ELBench-results](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results) 发布。
 
 ## 模块
 
@@ -36,7 +36,7 @@
 | 高阶育人（`高阶育人`） | 1000 | 高阶育人目标的开放式培养 |
 
 客观题由规则或参考答案匹配判分；主观和开放式任务采用 `LLM-as-a-Judge`，并配有经过验证的评分模型面板。评分一致性审计（对人工金标的二次加权 Cohen κ）见
-[`results/audit-judge-integrity/`](results/audit-judge-integrity/)。
+[结果数据集](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results)。
 
 ## 安装
 
@@ -80,15 +80,7 @@ ELBench 以两个 HuggingFace 数据集发布:
 - [**ZeroLoss-Lab/ELBench**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench) —— 评测题目集(四模块共 2939 题)。
 - [**ZeroLoss-Lab/ELBench-results**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results) —— 完整评测结果,含逐样本明细。
 
-## 结果
-
-已整理并提交的产出放在 [`results/`](results/) 下：
-
-- `audit-judge-integrity/`：勘误后的最终榜、bootstrap 置信区间、评分面板 κ、各模块重判汇总
-- `final-leaderboard-*/` 与 `deliverables/`：总榜与各模块明细榜（`总排行榜`、`按模块/测试/文件明细榜`）
-- `paper-facing-aaai*/`：论文使用的表格
-
-原始单次运行产物（`outputs/raw_responses/`、`judged_results/`、`logs/`）只在运行时存在，不进版本库。
+本仓库只保留评测框架与代码；评测题目与结果都在上面两个数据集中。原始单次运行产物（`outputs/raw_responses/`、`judged_results/`、`logs/`）只在运行时存在，不进版本库。
 
 ## 文档
 

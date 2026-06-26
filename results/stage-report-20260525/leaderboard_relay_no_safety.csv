@@ -1,2 +1,0 @@
-rank,model_id,run_id,total_judged,total_failures,general_score_pct,highlevel_score_pct,basic_score_pct,stage_score_pct,notes
-1,deepseek-v3.2,fair-deepseek-v3.2-nosafety-20260520-v1,1942,3,86.06,73.30,59.85,73.07,no-safety relay run; final cleanup still recommended.

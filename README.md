@@ -30,9 +30,9 @@ the spread among the first six is under two points, and several share rank 4.
 | 9 | InnoSpark-235B | **76.4** [75, 78] | 74.2 | 78.0 | 87.5 | 65.9 |
 
 Per-module and per-task leaderboards, confidence intervals, and the
-judge-reliability audit are published under [`results/`](results/). The
-machine-readable final board is
-[`results/audit-judge-integrity/leaderboard_FINAL.json`](results/audit-judge-integrity/leaderboard_FINAL.json).
+judge-reliability audit are released as the
+[ZeroLoss-Lab/ELBench-results](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results)
+dataset on HuggingFace.
 
 ## Modules
 
@@ -44,9 +44,9 @@ machine-readable final board is
 | High-Level Educational Cultivation (`高阶育人`) | 1,000 | Open-ended cultivation of higher-order educational goals |
 
 Objective tasks are graded by rule or reference matching; subjective and
-open-ended tasks use `LLM-as-a-Judge` with a validated judge panel. See
-[`results/audit-judge-integrity/`](results/audit-judge-integrity/) for the
-judge-agreement audit (quadratic weighted Cohen's κ against a human gold set).
+open-ended tasks use `LLM-as-a-Judge` with a validated judge panel. The
+judge-agreement audit (quadratic weighted Cohen's κ against a human gold set)
+is in the [results dataset](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results).
 
 ## Installation
 
@@ -91,18 +91,10 @@ ELBench is released as two HuggingFace datasets:
 - [**ZeroLoss-Lab/ELBench**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench) — the benchmark items (2,939 across the four modules).
 - [**ZeroLoss-Lab/ELBench-results**](https://huggingface.co/datasets/ZeroLoss-Lab/ELBench-results) — the full evaluation results, including per-sample detail.
 
-## Results
-
-Curated, committed outputs live under [`results/`](results/):
-
-- `audit-judge-integrity/` — final corrected leaderboard, bootstrap confidence
-  intervals, judge-panel κ, and per-module rejudge summaries
-- `final-leaderboard-*/` and `deliverables/` — overall and per-module
-  leaderboard tables (`总排行榜`, `按模块/测试/文件明细榜`)
-- `paper-facing-aaai*/` — the tables used in the paper
-
-Raw per-run artifacts (`outputs/raw_responses/`, `judged_results/`, `logs/`) are
-runtime-only and not committed.
+This repository holds the evaluation framework and code only; the benchmark
+items and results live in the two datasets above. Run artifacts
+(`outputs/raw_responses/`, `judged_results/`, `logs/`) are runtime-only and not
+committed.
 
 ## Documentation
 
