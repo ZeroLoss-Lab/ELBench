@@ -111,6 +111,19 @@ python -m unittest \
   tests.test_judges tests.test_response_format_retry
 ```
 
+## 🔬 Citation
+
+If you use this benchmark in your research, please cite:
+
+```bibtex
+@article{jiang2026elbench,
+  title={ELBench: A Multi-Dimensional Benchmark for Education-Facing Large Language Models},
+  author={Jiang, Yilin and Zhu, Xiaorong and Tan, Fei and Zhang, Zicheng and Huang, Kaiyi and Yu, Yang and Fei, Zexuan and Luo, Yiming and Li, Keqian and Hao, Hao and others},
+  journal={arXiv preprint arXiv:2608.09548},
+  year={2026}
+}
+```
+
 ## License
 
 Add your preferred license before publishing.
